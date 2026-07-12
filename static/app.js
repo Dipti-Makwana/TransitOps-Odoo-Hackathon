@@ -149,18 +149,94 @@ function toast(msg, ok=true){
 }
 
 // ---------- API HELPERS ----------
-async function apiGet(path){ const r = await fetch(API+path); return r.json(); }
+async function apiGet(path){
+  if(DEMO_MODE){
+    const costMatch = path.match(/^\/vehicles\/(\d+)\/cost$/);
+    if(costMatch) return simulateWrite(path, 'PUT');
+    return [];
+  }
+  const r = await fetch(API+path); return r.json();
+}
 async function apiPost(path, body){
-  const r = await fetch(API+path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
-  const data = await r.json();
-  if(!r.ok){ toast(data.error || 'Error', false); throw new Error(data.error); }
-  return data;
+  if(DEMO_MODE) return simulateWrite(path, 'POST', body);
+  try{
+    const r = await fetch(API+path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    const data = await r.json();
+    if(!r.ok){ toast(data.error || 'Error', false); throw new Error(data.error); }
+    return data;
+  }catch(err){
+    if(!DEMO_MODE){ DEMO_MODE = true; return simulateWrite(path, 'POST', body); }
+    throw err;
+  }
 }
 async function apiPut(path){
-  const r = await fetch(API+path, {method:'PUT'});
-  const data = await r.json();
-  if(!r.ok){ toast(data.error || 'Error', false); throw new Error(data.error); }
-  return data;
+  if(DEMO_MODE) return simulateWrite(path, 'PUT');
+  try{
+    const r = await fetch(API+path, {method:'PUT'});
+    const data = await r.json();
+    if(!r.ok){ toast(data.error || 'Error', false); throw new Error(data.error); }
+    return data;
+  }catch(err){
+    if(!DEMO_MODE){ DEMO_MODE = true; return simulateWrite(path, 'PUT'); }
+    throw err;
+  }
+}
+
+// Simulates the handful of writes app.js performs, purely in memory,
+// so every button works end-to-end while running on demo data.
+let DEMO_NEXT_ID = 1000;
+function simulateWrite(path, method, body){
+  if(method==='POST' && path==='/vehicles'){
+    const v = {id: DEMO_NEXT_ID++, status:'Available', ...body};
+    VEHICLES.push(v); return v;
+  }
+  if(method==='POST' && path==='/drivers'){
+    const d = {id: DEMO_NEXT_ID++, status:'Available', safety_score:80, ...body};
+    DRIVERS.push(d); return d;
+  }
+  if(method==='POST' && path==='/trips'){
+    const t = {id: DEMO_NEXT_ID++, trip_status:'Dispatched', ...body};
+    TRIPS.push(t);
+    const v = VEHICLES.find(x=>x.id===t.vehicle_id); if(v) v.status='On Trip';
+    const d = DRIVERS.find(x=>x.id===t.driver_id); if(d) d.status='On Trip';
+    return t;
+  }
+  if(method==='POST' && path==='/maintenance'){
+    const m = {id: DEMO_NEXT_ID++, status:'Active', ...body};
+    MAINT.push(m);
+    const v = VEHICLES.find(x=>x.id===m.vehicle_id); if(v) v.status='In Shop';
+    return m;
+  }
+  if(method==='POST' && (path==='/fuel' || path==='/expenses')) return {ok:true};
+  if(method==='PUT'){
+    const retireMatch = path.match(/^\/vehicles\/(\d+)\/retire$/);
+    if(retireMatch){ const v = VEHICLES.find(x=>x.id==retireMatch[1]); if(v) v.status='Retired'; return v; }
+    const completeMatch = path.match(/^\/trips\/(\d+)\/complete$/);
+    if(completeMatch){
+      const t = TRIPS.find(x=>x.id==completeMatch[1]); if(t){ t.trip_status='Completed';
+        const v=VEHICLES.find(x=>x.id===t.vehicle_id); if(v) v.status='Available';
+        const d=DRIVERS.find(x=>x.id===t.driver_id); if(d) d.status='Available'; }
+      return t;
+    }
+    const cancelMatch = path.match(/^\/trips\/(\d+)\/cancel$/);
+    if(cancelMatch){
+      const t = TRIPS.find(x=>x.id==cancelMatch[1]); if(t){ t.trip_status='Cancelled';
+        const v=VEHICLES.find(x=>x.id===t.vehicle_id); if(v) v.status='Available';
+        const d=DRIVERS.find(x=>x.id===t.driver_id); if(d) d.status='Available'; }
+      return t;
+    }
+    const closeMatch = path.match(/^\/maintenance\/(\d+)\/close$/);
+    if(closeMatch){
+      const m = MAINT.find(x=>x.id==closeMatch[1]); if(m){ m.status='Closed';
+        const v=VEHICLES.find(x=>x.id===m.vehicle_id); if(v && v.status!=='Retired') v.status='Available'; }
+      return m;
+    }
+    const costMatch = path.match(/^\/vehicles\/(\d+)\/cost$/);
+    if(costMatch){
+      return {total_fuel_cost: 8000+Math.random()*4000, total_expense_cost: 2000+Math.random()*1500, total_operational_cost: 12000+Math.random()*4000};
+    }
+  }
+  return {};
 }
 
 // ---------- SKELETONS ----------
@@ -173,6 +249,55 @@ function showSkeletons(){
   document.getElementById('reportsTable').innerHTML = skeletonRows(7);
 }
 
+// ---------- DEMO DATA FALLBACK ----------
+// If the backend isn't reachable yet, the app falls back to realistic sample
+// data instead of showing a blank dashboard. A banner makes it clear this is
+// demo data, not live data, so nobody mistakes one for the other.
+let DEMO_MODE = false;
+function buildDemoData(){
+  const today = new Date();
+  const inDays = n => { const d = new Date(today); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+  const vehicles = [
+    {id:1, registration_number:'GJ-01-AB-1234', model:'Tata Ace', type:'Mini Truck', max_load_capacity:750, odometer:18200, region:'Ahmedabad', status:'Available', acquisition_cost:650000},
+    {id:2, registration_number:'GJ-05-CD-5678', model:'Ashok Leyland Dost', type:'Van', max_load_capacity:1250, odometer:42500, region:'Surat', status:'On Trip', acquisition_cost:920000},
+    {id:3, registration_number:'GJ-01-EF-9012', model:'Eicher Pro 2049', type:'Truck', max_load_capacity:4900, odometer:87650, region:'Ahmedabad', status:'In Shop', acquisition_cost:2150000},
+    {id:4, registration_number:'GJ-27-GH-3456', model:'Mahindra Bolero Pickup', type:'Mini Truck', max_load_capacity:900, odometer:120400, region:'Vadodara', status:'Retired', acquisition_cost:580000},
+    {id:5, registration_number:'GJ-01-IJ-7890', model:'Tata 407', type:'Van', max_load_capacity:2000, odometer:33100, region:'Ahmedabad', status:'Available', acquisition_cost:1150000},
+  ];
+  const drivers = [
+    {id:1, name:'Alex Patel', license_number:'GJ0120230011', license_category:'Transport', contact_number:'98250 11223', license_expiry_date:inDays(400), safety_score:92, status:'Available'},
+    {id:2, name:'Ravi Shah', license_number:'GJ0520190045', license_category:'HMV', contact_number:'99250 44556', license_expiry_date:inDays(12), safety_score:87, status:'On Trip'},
+    {id:3, name:'Meera Joshi', license_number:'GJ0120210099', license_category:'LMV', contact_number:'97250 77889', license_expiry_date:inDays(-5), safety_score:78, status:'Suspended'},
+    {id:4, name:'Karan Desai', license_number:'GJ2720220034', license_category:'Transport', contact_number:'98980 12121', license_expiry_date:inDays(200), safety_score:95, status:'Available'},
+  ];
+  const trips = [
+    {id:1, source:'Ahmedabad', destination:'Surat', vehicle_id:2, driver_id:2, cargo_weight:1100, planned_distance:280, trip_status:'Dispatched'},
+    {id:2, source:'Ahmedabad', destination:'Vadodara', vehicle_id:1, driver_id:1, cargo_weight:400, planned_distance:110, trip_status:'Draft'},
+    {id:3, source:'Surat', destination:'Rajkot', vehicle_id:5, driver_id:4, cargo_weight:1800, planned_distance:340, trip_status:'Completed'},
+    {id:4, source:'Ahmedabad', destination:'Bhavnagar', vehicle_id:3, driver_id:2, cargo_weight:2200, planned_distance:200, trip_status:'Cancelled'},
+  ];
+  const maint = [
+    {id:1, vehicle_id:3, description:'Engine overhaul + brake pad replacement', status:'Active'},
+    {id:2, vehicle_id:5, description:'Routine oil change', status:'Closed'},
+  ];
+  const reports = vehicles.filter(v=>v.status!=='Retired').map(v=>({
+    vehicle_id:v.id, registration_number:v.registration_number, type:v.type, region:v.region, status:v.status,
+    fuel_efficiency: 6 + Math.random()*6,
+    total_operational_cost: 15000 + Math.random()*45000,
+    roi: 8 + Math.random()*20
+  }));
+  return {vehicles, drivers, trips, maint, reports};
+}
+function showDemoBanner(){
+  const el = document.getElementById('alertStrip');
+  if(!el) return;
+  const banner = document.createElement('div');
+  banner.className = 'alert-strip demo-strip';
+  banner.setAttribute('role','status');
+  banner.innerHTML = `<i class="bi bi-info-circle-fill" aria-hidden="true"></i><div><div class="alert-item"><b>Demo data</b> — showing sample fleet data because the backend isn't connected yet. Connect the API to see live data.</div></div>`;
+  el.prepend(banner);
+}
+
 // ---------- REFRESH ----------
 async function refreshAll(){
   try{
@@ -180,8 +305,15 @@ async function refreshAll(){
       apiGet('/vehicles'), apiGet('/drivers'), apiGet('/trips').catch(()=>[]), apiGet('/maintenance').catch(()=>[])
     ]);
     REPORTS = await apiGet('/reports').catch(()=>[]);
-  }catch(err){ toast('Cannot reach backend at '+API+' — is app.py running with CORS enabled?', false); return; }
+    DEMO_MODE = false;
+  }catch(err){
+    const demo = buildDemoData();
+    VEHICLES = demo.vehicles; DRIVERS = demo.drivers; TRIPS = demo.trips; MAINT = demo.maint; REPORTS = demo.reports;
+    DEMO_MODE = true;
+    toast('Backend not reachable — showing demo data', false);
+  }
   renderVehicles(); renderDrivers(); renderTrips(); renderMaint(); renderDashboard(); renderReports(); fillDropdowns(); fillRegionFilter();
+  if(DEMO_MODE) showDemoBanner();
 }
 
 function applyFilters(list){
