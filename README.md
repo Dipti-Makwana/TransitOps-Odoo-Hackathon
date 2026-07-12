@@ -5,7 +5,7 @@ A backend system for managing fleet vehicles, drivers, trips, maintenance, and o
 ## Tech Stack
 - Backend: Python, Flask, SQLAlchemy
 - Database: SQLite
-- Frontend: HTML,CSS, JavaScript
+- Frontend: HTML,CSS, JavaScript.
 
 ## Features
 - Vehicle and Driver management
@@ -19,3 +19,8 @@ A backend system for managing fleet vehicles, drivers, trips, maintenance, and o
 1. Install dependencies: `pip install flask flask_sqlalchemy flask-cors`
 2. Run the server: `python app.py`
 3. Server runs at `http://127.0.0.1:5000`
+
+
+## build by
+dipti makwana
+Mahek Gohel
