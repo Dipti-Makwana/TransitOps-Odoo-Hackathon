@@ -40,6 +40,7 @@
       </select>
     </div>
     <button id="signInBtn" class="btn btn-odoo w-100">Sign In</button>
+    <div class="text-center text-muted mt-3" style="font-size:.75rem;">Manage your fleet, drivers, trips, and maintenance in one place.</div>
   </div>
 </div>
 
@@ -64,8 +65,8 @@
         <h4 id="pageTitle" class="mb-0 fw-bold">Dashboard</h4>
         <div class="status-legend d-flex gap-3 mt-1">
           <span class="legend-item"><span class="legend-dot" style="background:var(--c-available)"></span>Available</span>
-          <span class="legend-item"><span class="legend-dot" style="background:var(--c-ontrip)"></span>On Trip</span>
-          <span class="legend-item"><span class="legend-dot" style="background:var(--c-inshop)"></span>In Shop</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--c-ontrip)"></span>On Trip</span
+          ><span class="legend-item"><span class="legend-dot" style="background:var(--c-inshop)"></span>In Shop</span>
           <span class="legend-item"><span class="legend-dot" style="background:var(--c-retired)"></span>Retired</span>
         </div>
       </div>
@@ -79,22 +80,166 @@
     <div id="alertStrip"></div>
 
     <!-- ================= DASHBOARD ================= -->
-    <div class="section active" id="section-dashboard">
-      <!-- Moved Filters to Dashboard -->
-      <div class="d-flex gap-2 mb-4 bg-white p-3 rounded shadow-sm border">
-        <span class="fw-bold align-self-center me-2">Filters:</span>
-        <select id="filter_type" class="form-select form-select-sm w-auto"><option value="">All Types</option><option>Truck</option><option>Van</option><option>Mini Truck</option><option>Trailer</option></select>
-        <select id="filter_status" class="form-select form-select-sm w-auto"><option value="">All Statuses</option><option>Available</option><option>On Trip</option><option>In Shop</option><option>Retired</option></select>
-        <select id="filter_region" class="form-select form-select-sm w-auto"><option value="">All Regions</option></select>
-        <button id="filterResetBtn" class="btn btn-sm btn-outline-secondary">Reset</button>
+<div class="section active" id="section-dashboard">
+
+  <!-- Welcome Banner -->
+  <div class="card p-3 mb-4 demo-strip">
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+      <div>
+        <h4 class="mb-1 fw-bold">Fleet Operations Center</h4>
+        <div class="text-muted">
+          Monitor vehicles, drivers, dispatch operations and business performance.
+        </div>
       </div>
 
-      <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-3 mb-4" id="kpiRow"></div>
-      <div class="row g-3">
-        <div class="col-md-6"><div class="card p-3"><canvas id="statusChart"></canvas></div></div>
-        <div class="col-md-6"><div class="card p-3"><canvas id="tripChart"></canvas></div></div>
+      <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-odoo">
+          <i class="bi bi-plus-circle"></i>
+          New Trip
+        </button>
+
+        <button class="btn btn-outline-secondary">
+          <i class="bi bi-download"></i>
+          Export
+        </button>
       </div>
     </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div
+    class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-3 mb-4"
+    id="kpiRow">
+  </div>
+
+  <!-- Analytics -->
+  <div class="row g-3 mb-4">
+
+    <div class="col-md-6">
+      <div class="card p-3">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0">
+            Fleet Status Overview
+          </h6>
+
+          <span class="small text-muted">
+            Live Vehicle Distribution
+          </span>
+        </div>
+
+        <canvas id="statusChart"></canvas>
+
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card p-3">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0">
+            Trip Analytics
+          </h6>
+
+          <span class="small text-muted">
+            Current Activity
+          </span>
+        </div>
+
+        <canvas id="tripChart"></canvas>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Quick Actions + Activity -->
+  <div class="row g-3">
+
+    <div class="col-md-4">
+
+      <div class="card p-3">
+
+        <h6 class="fw-bold mb-3">
+          Quick Actions
+        </h6>
+
+        <div class="d-flex flex-column gap-2">
+
+          <button class="btn btn-odoo">
+            🚚 Register Vehicle
+          </button>
+
+          <button class="btn btn-outline-secondary">
+            👤 Add Driver
+          </button>
+
+          <button class="btn btn-outline-secondary">
+            📍 Dispatch Trip
+          </button>
+
+          <button class="btn btn-outline-secondary">
+            🔧 Maintenance
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="col-md-8">
+
+      <div class="card p-3">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+
+          <h6 class="fw-bold mb-0">
+            Recent Activity
+          </h6>
+
+          <span class="small text-muted">
+            Latest Fleet Events
+          </span>
+
+        </div>
+
+        <div class="activity-feed">
+
+          <div class="mb-3">
+            <strong>Vehicle MH12AB1010</strong>
+            marked Available
+          </div>
+
+          <div class="mb-3">
+            <strong>Trip #145</strong>
+            dispatched successfully
+          </div>
+
+          <div class="mb-3">
+            <strong>Driver Alex</strong>
+            assigned to route
+          </div>
+
+          <div class="mb-3">
+            <strong>Oil Change</strong>
+            maintenance logged
+          </div>
+
+          <div>
+            <strong>Fuel Entry</strong>
+            added to fleet records
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
 
     <!-- ================= VEHICLES ================= -->
     <div class="section" id="section-vehicles">
@@ -118,8 +263,14 @@
       </div>
 
       <div class="card p-3">
-        <div class="d-flex mb-3">
-          <input id="vehicleSearch" class="form-control w-25" placeholder="Search by registration...">
+        <div class="d-flex flex-wrap gap-2 justify-content-between mb-3">
+          <input id="vehicleSearch" class="form-control" style="max-width:220px;" placeholder="Search by registration...">
+          <div class="d-flex gap-2">
+            <select id="filter_type" class="form-select form-select-sm"><option value="">All Types</option><option>Truck</option><option>Van</option><option>Mini Truck</option><option>Trailer</option></select>
+            <select id="filter_status" class="form-select form-select-sm"><option value="">All Statuses</option><option>Available</option><option>On Trip</option><option>In Shop</option><option>Retired</option></select>
+            <select id="filter_region" class="form-select form-select-sm"><option value="">All Regions</option></select>
+            <button id="filterResetBtn" class="btn btn-sm btn-outline-secondary">Reset</button>
+          </div>
         </div>
         <div class="table-responsive">
           <table class="table align-middle mb-0">
@@ -130,78 +281,112 @@
       </div>
     </div>
 
+    <!-- ================= DRIVERS ================= -->
+    <div class="section" id="section-drivers">
+      <div class="card p-3 mb-3">
+        <h6 class="fw-bold mb-3">Add Driver</h6>
+        <form id="driverForm" class="row g-2">
+          <div class="col-md-3"><input required id="d_name" class="form-control" placeholder="Full Name"></div>
+          <div class="col-md-2"><input required id="d_license" class="form-control" placeholder="License Number"></div>
+          <div class="col-md-2">
+            <select id="d_license_category" class="form-select">
+              <option value="">License Category...</option>
+              <option>LMV</option><option>HMV</option><option>Transport</option>
+            </select>
+          </div>
+          <div class="col-md-2"><input id="d_contact" class="form-control" placeholder="Contact Number"></div>
+          <div class="col-md-2"><input required type="date" id="d_expiry" class="form-control"></div>
+          <div class="col-md-1"><button class="btn btn-odoo w-100">Add</button></div>
+        </form>
+      </div>
+      <div class="card p-3">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead><tr><th>ID</th><th>Name</th><th>License #</th><th>Category</th><th>Contact</th><th>Expiry</th><th>Safety Score</th><th>Status</th></tr></thead>
+            <tbody id="driverTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- ================= TRIPS ================= -->
     <div class="section" id="section-trips">
       <div class="card p-3 mb-3">
-        <h6 class="fw-bold mb-3">Create / Dispatch Trip</h6>
+        <h6 class="fw-bold mb-3">Dispatch Trip</h6>
         <form id="tripForm" class="row g-2">
           <div class="col-md-2"><input required id="t_source" class="form-control" placeholder="Source"></div>
           <div class="col-md-2"><input required id="t_dest" class="form-control" placeholder="Destination"></div>
           <div class="col-md-2"><select required id="t_vehicle" class="form-select"><option value="">Vehicle...</option></select></div>
           <div class="col-md-2"><select required id="t_driver" class="form-select"><option value="">Driver...</option></select></div>
           <div class="col-md-2"><input required type="number" id="t_cargo" class="form-control" placeholder="Cargo Weight (kg)"></div>
-          <div class="col-md-2 d-flex gap-2">
-            <!-- Draft/Dispatch Buttons -->
-            <button type="button" id="btnSaveDraft" class="btn btn-outline-secondary w-50">Draft</button>
-            <button type="button" id="btnDispatch" class="btn btn-odoo w-50">Dispatch</button>
-          </div>
+          <div class="col-md-1"><input type="number" id="t_distance" class="form-control" placeholder="Distance (km)"></div>
+          <div class="col-md-1"><button class="btn btn-odoo w-100">Go</button></div>
         </form>
       </div>
       <div class="card p-3">
         <div class="table-responsive">
           <table class="table align-middle mb-0">
-            <thead><tr><th>ID</th><th>Route</th><th>Vehicle</th><th>Driver</th><th>Cargo</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>ID</th><th>Route</th><th>Vehicle</th><th>Driver</th><th>Cargo</th><th>Distance</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody id="tripTable"></tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- ================= MAINTENANCE & COSTS ================= -->
+    <!-- ================= MAINTENANCE ================= -->
     <div class="section" id="section-maintenance">
-      <!-- Maintenance Logs (Unchanged) -->
-      <!-- ... -->
-      
+      <div class="card p-3 mb-3">
+        <h6 class="fw-bold mb-3">Log Maintenance</h6>
+        <form id="maintForm" class="row g-2">
+          <div class="col-md-4"><select required id="m_vehicle" class="form-select"><option value="">Vehicle...</option></select></div>
+          <div class="col-md-6"><input required id="m_desc" class="form-control" placeholder="Description (e.g. Oil Change)"></div>
+          <div class="col-md-2"><button class="btn btn-odoo w-100">Send to Shop</button></div>
+        </form>
+      </div>
+      <div class="card p-3">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead><tr><th>ID</th><th>Vehicle</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="maintTable"></tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="row g-3 mt-1">
         <div class="col-md-6">
           <div class="card p-3">
             <h6 class="fw-bold mb-3">Fuel Log</h6>
-            <form id="fuelForm" class="row g-2 mb-3">
+            <form id="fuelForm" class="row g-2">
               <div class="col-12"><select required id="f_vehicle" class="form-select"><option value="">Vehicle...</option></select></div>
               <div class="col-6"><input required type="number" id="f_liters" class="form-control" placeholder="Liters"></div>
-              <div class="col-6"><input required type="number" id="f_cost" class="form-control" placeholder="Cost (₹)"></div>
+              <div class="col-6"><input required type="number" id="f_cost" class="form-control" placeholder="Cost"></div>
               <div class="col-12"><button class="btn btn-odoo w-100">Add Fuel Log</button></div>
             </form>
-            <!-- New Visible Table -->
-            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
-              <table class="table table-sm align-middle">
-                <thead><tr><th>Vehicle</th><th>Liters</th><th>Cost</th></tr></thead>
-                <tbody id="fuelTableBody"></tbody>
-              </table>
-            </div>
           </div>
         </div>
         <div class="col-md-6">
           <div class="card p-3">
             <h6 class="fw-bold mb-3">Other Expense</h6>
-            <form id="expForm" class="row g-2 mb-3">
+            <form id="expForm" class="row g-2">
               <div class="col-12"><select required id="e_vehicle" class="form-select"><option value="">Vehicle...</option></select></div>
               <div class="col-6"><select required id="e_type" class="form-select"><option value="Toll">Toll</option><option value="Parking">Parking</option><option value="Other">Other</option></select></div>
-              <div class="col-6"><input required type="number" id="e_amount" class="form-control" placeholder="Amount (₹)"></div>
+              <div class="col-6"><input required type="number" id="e_amount" class="form-control" placeholder="Amount"></div>
               <div class="col-12"><button class="btn btn-odoo w-100">Add Expense</button></div>
             </form>
-            <!-- New Visible Table -->
-            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
-              <table class="table table-sm align-middle">
-                <thead><tr><th>Vehicle</th><th>Type</th><th>Amount</th></tr></thead>
-                <tbody id="expenseTableBody"></tbody>
-              </table>
-            </div>
           </div>
         </div>
       </div>
+
+      <div class="card p-3 mt-3">
+        <h6 class="fw-bold mb-3">Vehicle Cost Lookup</h6>
+        <div class="d-flex gap-2 mb-2">
+          <select id="cost_vehicle" class="form-select" style="max-width:280px;"><option value="">Vehicle...</option></select>
+          <button id="costLookupBtn" class="btn btn-outline-secondary">Lookup</button>
+        </div>
+        <div id="costResult" class="small text-muted"></div>
+      </div>
     </div>
-    
+
     <!-- ================= REPORTS ================= -->
     <div class="section" id="section-reports">
       <div class="card p-3">
@@ -222,6 +407,7 @@
 </div>
 
 <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastHost"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="static/app.js"></script>
