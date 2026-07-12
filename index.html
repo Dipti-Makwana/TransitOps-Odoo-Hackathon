@@ -49,14 +49,14 @@
   <div class="card p-4">
     <h4 class="text-center mb-1" style="color:var(--odoo-purple); font-weight:700;">TransitOps</h4>
     <p class="text-center text-muted mb-4" style="font-size:.85rem;">Smart Transport Operations Platform</p>
-    <form id="loginForm">
+    <form id="loginForm" onsubmit="return false;">
       <div class="mb-3">
         <label class="form-label">Email</label>
-        <input type="email" class="form-control" id="loginEmail" required value="admin@transitops.com">
+        <input type="email" class="form-control" id="loginEmail" value="admin@transitops.com">
       </div>
       <div class="mb-3">
         <label class="form-label">Password</label>
-        <input type="password" class="form-control" id="loginPassword" required value="admin123">
+        <input type="password" class="form-control" id="loginPassword" value="admin123">
       </div>
       <div class="mb-3">
         <label class="form-label">Role</label>
@@ -67,7 +67,8 @@
           <option>Financial Analyst</option>
         </select>
       </div>
-      <button class="btn btn-odoo w-100">Sign In</button>
+      <button type="button" class="btn btn-odoo w-100" id="signInBtn">Sign In</button>
+      <div id="loginError" class="text-danger small mt-2" style="display:none;"></div>
     </form>
   </div>
 </div>
@@ -242,12 +243,18 @@ const API = 'http://127.0.0.1:5000';
 let VEHICLES = [], DRIVERS = [], TRIPS = [], MAINT = [];
 
 // ---------- AUTH (client-side only, ties to PDF's RBAC front-end requirement) ----------
-document.getElementById('loginForm').addEventListener('submit', e=>{
-  e.preventDefault();
-  const role = document.getElementById('loginRole').value;
-  const email = document.getElementById('loginEmail').value;
-  sessionStorage.setItem('to_user', JSON.stringify({email, role}));
-  boot();
+document.getElementById('signInBtn').addEventListener('click', function(){
+  try{
+    const role = document.getElementById('loginRole').value;
+    const email = document.getElementById('loginEmail').value || 'user@transitops.com';
+    sessionStorage.setItem('to_user', JSON.stringify({email, role}));
+    boot();
+  }catch(err){
+    const el = document.getElementById('loginError');
+    el.style.display = 'block';
+    el.textContent = 'Login error: ' + err.message;
+    console.error(err);
+  }
 });
 document.getElementById('logoutBtn').addEventListener('click', ()=>{
   sessionStorage.removeItem('to_user');
