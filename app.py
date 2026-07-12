@@ -22,11 +22,12 @@ from datetime import datetime
 def add_vehicle():
     data = request.json
     vehicle = Vehicle(
-        registration_number=data['registration_number'],
-        model=data['model'],
-        type=data['type'],
-        max_load_capacity=data['max_load_capacity']
-    )
+    registration_number=data['registration_number'],
+    model=data['model'],
+    type=data['type'],
+    max_load_capacity=data['max_load_capacity'],
+    odometer=data.get('odometer', 0)
+)
     db.session.add(vehicle)
     db.session.commit()
     return jsonify({"message": "Vehicle added", "id": vehicle.id}), 201
