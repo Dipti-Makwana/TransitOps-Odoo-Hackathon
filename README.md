@@ -24,3 +24,5 @@ A backend system for managing fleet vehicles, drivers, trips, maintenance, and o
 ## build by
 Dipti Makwana
 Mahek Gohel
+
+*Status: Submitted successfully for evaluation.*
