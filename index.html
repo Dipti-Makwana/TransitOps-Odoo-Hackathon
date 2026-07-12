@@ -79,7 +79,7 @@
 
     <div id="alertStrip"></div>
 
-    <!-- ================= DASHBOARD ================= -->
+<!-- ================= DASHBOARD ================= -->
 <div class="section active" id="section-dashboard">
 
   <!-- Welcome Banner -->
@@ -93,12 +93,12 @@
       </div>
 
       <div class="d-flex gap-2 mt-2">
-        <button class="btn btn-odoo">
+        <button class="btn btn-odoo" onclick="document.querySelector('[data-section=trips]').click()">
           <i class="bi bi-plus-circle"></i>
           New Trip
         </button>
 
-        <button class="btn btn-outline-secondary">
+        <button class="btn btn-outline-secondary" onclick="document.querySelector('[data-section=reports]').click()">
           <i class="bi bi-download"></i>
           Export
         </button>
@@ -166,19 +166,19 @@
 
         <div class="d-flex flex-column gap-2">
 
-          <button class="btn btn-odoo">
+          <button class="btn btn-odoo" onclick="document.querySelector('[data-section=vehicles]').click()">
             🚚 Register Vehicle
           </button>
 
-          <button class="btn btn-outline-secondary">
+          <button class="btn btn-outline-secondary" onclick="document.querySelector('[data-section=drivers]').click()">
             👤 Add Driver
           </button>
 
-          <button class="btn btn-outline-secondary">
+          <button class="btn btn-outline-secondary" onclick="document.querySelector('[data-section=trips]').click()">
             📍 Dispatch Trip
           </button>
 
-          <button class="btn btn-outline-secondary">
+          <button class="btn btn-outline-secondary" onclick="document.querySelector('[data-section=maintenance]').click()">
             🔧 Maintenance
           </button>
 
