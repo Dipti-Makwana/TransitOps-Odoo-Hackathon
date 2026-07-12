@@ -72,3 +72,36 @@
     .sidebar .brand{justify-content:center; padding:.5rem 0 1.5rem;}
     .main{margin-left:64px; padding:1.25rem 1rem;}
   }
+
+  /* ---------- Visual refresh: dashboard + login polish ---------- */
+  .demo-strip{background:#eef2ff; border-color:#c7d2fe;}
+  body.dark .demo-strip{background:#1f2340; border-color:#3a3f6e;}
+  .demo-strip i{color:#4f46e5;}
+
+  .kpi-card{transition:transform .18s ease, box-shadow .18s ease;}
+  .kpi-card:hover{transform:translateY(-3px); box-shadow:0 8px 22px rgba(113,75,103,.14);}
+  .kpi-value{font-variant-numeric:tabular-nums;}
+
+  .nav-link{transition:background .15s ease, padding-left .15s ease;}
+  .nav-link:hover{padding-left:1.45rem;}
+
+  .btn-odoo{transition:transform .12s ease, box-shadow .12s ease;}
+  .btn-odoo:active{transform:translateY(1px);}
+
+  #loginScreen .card{box-shadow:0 24px 60px rgba(20,10,20,.35); animation:loginPop .35s cubic-bezier(.22,1,.36,1);}
+  @keyframes loginPop{from{opacity:0; transform:translateY(10px) scale(.98);} to{opacity:1; transform:translateY(0) scale(1);}}
+  #loginScreen .bi-truck{animation:truckDrift 2.4s ease-in-out infinite;}
+  @keyframes truckDrift{0%,100%{transform:translateX(0);} 50%{transform:translateX(3px);}}
+
+  .table tbody tr{transition:background .12s ease;}
+  .table tbody tr:hover{background:rgba(113,75,103,.04);}
+  body.dark .table tbody tr:hover{background:rgba(255,255,255,.03);}
+
+  .toast{animation:toastIn .2s ease;}
+  @keyframes toastIn{from{opacity:0; transform:translateX(12px);} to{opacity:1; transform:translateX(0);}}
+
+  @media (prefers-reduced-motion: reduce){
+    .kpi-card, .nav-link, .btn-odoo, #loginScreen .card, #loginScreen .bi-truck, .table tbody tr, .toast{
+      animation:none !important; transition:none !important;
+    }
+  }
