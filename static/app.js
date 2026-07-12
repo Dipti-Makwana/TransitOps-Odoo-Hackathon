@@ -14,7 +14,7 @@ const STATUS_BADGE = {
   'Completed':'success','Cancelled':'danger','Active':'warning text-dark','Closed':'success'
 };
 
-// ---------- Fix 2: number/currency formatting ----------
+// ---------- number/currency formatting ----------
 function fmtCurrency(n){
   if(n === null || n === undefined || n === '' || isNaN(n)) return '—';
   return CURRENCY_SYMBOL + Number(n).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -66,11 +66,40 @@ function boot(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('userChip').innerHTML = `<i class="bi bi-person-circle" aria-hidden="true"></i> ${user.email} <span class="badge bg-secondary ms-1">${user.role}</span>`;
+  applyRoleAccess(user.role);
   showSkeletons();
   refreshAll();
 }
 
-// ---------- THEME (Fix 4: accessible toggle) ----------
+// ---------- RBAC ----------
+// PDF 3.1: Only authenticated users access the app (handled by boot/login gate above).
+// Role-based access control: hide/disable actions not relevant to a role.
+// Roles: Fleet Manager, Driver, Safety Officer, Financial Analyst
+const ROLE_SECTION_ACCESS = {
+  'Fleet Manager': ['dashboard','vehicles','drivers','trips','maintenance','reports'],
+  'Driver': ['dashboard','trips'],
+  'Safety Officer': ['dashboard','drivers'],
+  'Financial Analyst': ['dashboard','reports']
+};
+function applyRoleAccess(role){
+  const allowed = ROLE_SECTION_ACCESS[role] || ['dashboard'];
+  document.querySelectorAll('.nav-link[data-section]').forEach(link=>{
+    const section = link.dataset.section;
+    if(allowed.includes(section)){
+      link.style.display = '';
+    } else {
+      link.style.display = 'none';
+    }
+  });
+  // Land on the first allowed section if current active one is hidden
+  const activeLink = document.querySelector('.nav-link.active');
+  if(activeLink && allowed.indexOf(activeLink.dataset.section) === -1){
+    const firstAllowed = document.querySelector(`.nav-link[data-section="${allowed[0]}"]`);
+    if(firstAllowed) firstAllowed.click();
+  }
+}
+
+// ---------- THEME ----------
 function toggleTheme(){
   document.body.classList.toggle('dark');
   const btn = document.getElementById('themeToggle');
@@ -101,7 +130,7 @@ document.querySelectorAll('.nav-link[data-section]').forEach(link=>{
   });
 });
 
-// ---------- TOAST (Fix 3: icon + accessible role) ----------
+// ---------- TOAST ----------
 function toast(msg, ok=true){
   const el = document.createElement('div');
   const icon = ok ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill';
@@ -127,11 +156,12 @@ async function apiPut(path){
   return data;
 }
 
-// ---------- SKELETONS (Fix 5: reports skeleton + correct colspans) ----------
+// ---------- SKELETONS ----------
+// Vehicle table now has 9 cols (id, reg, model, type, region, odometer, load, status, actions)
 function showSkeletons(){
-  document.getElementById('vehicleTable').innerHTML = skeletonRows(8); // id, reg, model, type, region, load, status, actions
-  document.getElementById('driverTable').innerHTML = skeletonRows(6);
-  document.getElementById('tripTable').innerHTML = skeletonRows(7);
+  document.getElementById('vehicleTable').innerHTML = skeletonRows(9);
+  document.getElementById('driverTable').innerHTML = skeletonRows(8); // id, name, license#, category, contact, expiry, safety, status
+  document.getElementById('tripTable').innerHTML = skeletonRows(8); // + planned distance col
   document.getElementById('maintTable').innerHTML = skeletonRows(5);
   document.getElementById('reportsTable').innerHTML = skeletonRows(7);
 }
@@ -157,12 +187,12 @@ function applyFilters(list){
 function renderVehicles(){
   const el = document.getElementById('vehicleTable');
   const list = applyFilters(VEHICLES);
-  if(!list.length){ el.innerHTML = emptyRow(8,'bi-truck-front','No vehicles match — add one above or reset filters.'); return; }
+  if(!list.length){ el.innerHTML = emptyRow(9,'bi-truck-front','No vehicles match — add one above or reset filters.'); return; }
   el.innerHTML = list.map(v=>{
     const retireBtn = v.status !== 'Retired' && v.status !== 'On Trip'
       ? `<button class="btn btn-sm btn-outline-secondary" onclick="retireVehicle(${v.id})">Retire</button>` : '';
     return `<tr>${statusCell(v.id, v.status)}<td>${v.registration_number}</td><td>${v.model||'-'}</td><td>${v.type||'-'}</td>
-    <td>${v.region||'-'}</td><td>${fmtNum(v.max_load_capacity,0)} kg</td><td>${statusBadge(v.status)}</td><td>${retireBtn}</td></tr>`;
+    <td>${v.region||'-'}</td><td>${fmtNum(v.odometer,0)} km</td><td>${fmtNum(v.max_load_capacity,0)} kg</td><td>${statusBadge(v.status)}</td><td>${retireBtn}</td></tr>`;
   }).join('');
 }
 async function retireVehicle(id){
@@ -171,7 +201,7 @@ async function retireVehicle(id){
 }
 function renderDrivers(){
   const el = document.getElementById('driverTable');
-  if(!DRIVERS.length){ el.innerHTML = emptyRow(6,'bi-person-badge','No drivers yet — add one above.'); return; }
+  if(!DRIVERS.length){ el.innerHTML = emptyRow(8,'bi-person-badge','No drivers yet — add one above.'); return; }
   const now = new Date();
   el.innerHTML = DRIVERS.map(d=>{
     let expiryCell = d.license_expiry_date||'-';
@@ -180,13 +210,14 @@ function renderDrivers(){
       if(days < 0) expiryCell = `${d.license_expiry_date} <i class="bi bi-exclamation-triangle-fill text-danger" title="Expired" aria-label="Expired"></i>`;
       else if(days <= 30) expiryCell = `${d.license_expiry_date} <i class="bi bi-exclamation-triangle-fill text-warning" title="Expires in ${days}d" aria-label="Expires in ${days} days"></i>`;
     }
-    return `<tr>${statusCell(d.id, d.status)}<td>${d.name}</td><td>${d.license_number}</td><td>${expiryCell}</td>
+    return `<tr>${statusCell(d.id, d.status)}<td>${d.name}</td><td>${d.license_number}</td><td>${d.license_category||'-'}</td>
+    <td>${d.contact_number||'-'}</td><td>${expiryCell}</td>
     <td>${d.safety_score??'-'}</td><td>${statusBadge(d.status)}</td></tr>`;
   }).join('');
 }
 function renderTrips(){
   const el = document.getElementById('tripTable');
-  if(!TRIPS.length){ el.innerHTML = emptyRow(7,'bi-signpost-split','No trips yet — dispatch one above.'); return; }
+  if(!TRIPS.length){ el.innerHTML = emptyRow(8,'bi-signpost-split','No trips yet — dispatch one above.'); return; }
   el.innerHTML = TRIPS.map(t=>{
     const veh = VEHICLES.find(v=>v.id===t.vehicle_id);
     const drv = DRIVERS.find(d=>d.id===t.driver_id);
@@ -196,7 +227,7 @@ function renderTrips(){
                  <button class="btn btn-sm btn-outline-danger" onclick="cancelTrip(${t.id})">Cancel</button>`;
     }
     return `<tr>${statusCell(t.id, t.trip_status)}<td>${t.source} → ${t.destination}</td><td>${veh?veh.registration_number:t.vehicle_id}</td>
-      <td>${drv?drv.name:t.driver_id}</td><td>${fmtNum(t.cargo_weight,0)} kg</td><td>${statusBadge(t.trip_status)}</td><td>${actions}</td></tr>`;
+      <td>${drv?drv.name:t.driver_id}</td><td>${fmtNum(t.cargo_weight,0)} kg</td><td>${fmtNum(t.planned_distance,0)} km</td><td>${statusBadge(t.trip_status)}</td><td>${actions}</td></tr>`;
   }).join('');
 }
 function renderMaint(){
@@ -250,8 +281,14 @@ document.getElementById('csvExportBtn').addEventListener('click', ()=>{
 });
 
 function fillDropdowns(){
+  // PDF 4: Retired/In Shop vehicles never in dispatch pool; expired-license/Suspended drivers excluded; On Trip excluded either way
+  const now = new Date();
   const availVeh = VEHICLES.filter(v=>v.status==='Available');
-  const availDrv = DRIVERS.filter(d=>d.status==='Available');
+  const availDrv = DRIVERS.filter(d=>{
+    if(d.status!=='Available') return false;
+    if(d.license_expiry_date && new Date(d.license_expiry_date) < now) return false;
+    return true;
+  });
   const vehOpts = VEHICLES.map(v=>`<option value="${v.id}">${v.registration_number}</option>`).join('');
   document.getElementById('t_vehicle').innerHTML = '<option value="">Vehicle...</option>' + availVeh.map(v=>`<option value="${v.id}">${v.registration_number} (max ${v.max_load_capacity}kg)</option>`).join('');
   document.getElementById('t_driver').innerHTML = '<option value="">Driver...</option>' + availDrv.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
@@ -282,13 +319,19 @@ function renderDashboard(){
   const inShop = VEHICLES.filter(v=>v.status==='In Shop').length;
   const onTrip = VEHICLES.filter(v=>v.status==='On Trip').length;
   const activeTrips = TRIPS.filter(t=>t.trip_status==='Dispatched').length;
+  const pendingTrips = TRIPS.filter(t=>t.trip_status==='Draft').length;
+  const driversOnDuty = DRIVERS.filter(d=>d.status==='On Trip').length;
   const util = active ? Math.round((onTrip/active)*100) : 0;
 
+  // PDF 3.2: Active Vehicles, Available Vehicles, Vehicles in Maintenance, Active Trips,
+  // Pending Trips, Drivers On Duty, Fleet Utilization (%)
   const kpis = [
     ['Active Vehicles', active, 'bi-truck-front', ''],
     ['Available', available, 'bi-check-circle', ''],
     ['In Maintenance', inShop, 'bi-tools', ''],
     ['Active Trips', activeTrips, 'bi-signpost-split', ''],
+    ['Pending Trips', pendingTrips, 'bi-hourglass-split', ''],
+    ['Drivers On Duty', driversOnDuty, 'bi-person-workspace', ''],
     ['Fleet Utilization', util, 'bi-graph-up', '%'],
   ];
   document.getElementById('kpiRow').innerHTML = kpis.map(([label,val,icon],i)=>`
@@ -340,6 +383,7 @@ document.getElementById('vehicleForm').addEventListener('submit', async e=>{
   await apiPost('/vehicles', {
     registration_number: v_reg.value, model: v_model.value, type: v_type.value,
     max_load_capacity: parseFloat(v_load.value),
+    odometer: parseFloat(v_odometer.value) || 0,
     region: v_region.value || 'Unassigned',
     acquisition_cost: parseFloat(v_cost.value) || 0
   });
@@ -349,17 +393,30 @@ document.getElementById('vehicleForm').addEventListener('submit', async e=>{
 document.getElementById('driverForm').addEventListener('submit', async e=>{
   e.preventDefault();
   await apiPost('/drivers', {
-    name: d_name.value, license_number: d_license.value, license_expiry_date: d_expiry.value
+    name: d_name.value, license_number: d_license.value,
+    license_category: d_license_category.value,
+    contact_number: d_contact.value,
+    license_expiry_date: d_expiry.value
   });
   toast('Driver added'); e.target.reset(); refreshAll();
 });
 
 document.getElementById('tripForm').addEventListener('submit', async e=>{
   e.preventDefault();
+  // Guard rails per PDF 4 (server should also enforce these)
+  const vehId = parseInt(t_vehicle.value);
+  const drvId = parseInt(t_driver.value);
+  const cargo = parseFloat(t_cargo.value);
+  const veh = VEHICLES.find(v=>v.id===vehId);
+  if(veh && cargo > veh.max_load_capacity){
+    toast(`Cargo weight (${cargo}kg) exceeds vehicle max load (${veh.max_load_capacity}kg)`, false);
+    return;
+  }
   await apiPost('/trips', {
     source: t_source.value, destination: t_dest.value,
-    vehicle_id: parseInt(t_vehicle.value), driver_id: parseInt(t_driver.value),
-    cargo_weight: parseFloat(t_cargo.value)
+    vehicle_id: vehId, driver_id: drvId,
+    cargo_weight: cargo,
+    planned_distance: parseFloat(t_distance.value) || 0
   });
   toast('Trip dispatched'); e.target.reset(); refreshAll();
 });
@@ -397,12 +454,12 @@ document.getElementById('vehicleSearch').addEventListener('input', e=>{
   const q = e.target.value.toLowerCase();
   const filtered = VEHICLES.filter(v=>v.registration_number.toLowerCase().includes(q));
   const el = document.getElementById('vehicleTable');
-  if(!filtered.length){ el.innerHTML = emptyRow(8,'bi-search','No matching vehicles.'); return; }
+  if(!filtered.length){ el.innerHTML = emptyRow(9,'bi-search','No matching vehicles.'); return; }
   el.innerHTML = filtered.map(v=>{
     const retireBtn = v.status !== 'Retired' && v.status !== 'On Trip'
       ? `<button class="btn btn-sm btn-outline-secondary" onclick="retireVehicle(${v.id})">Retire</button>` : '';
     return `<tr>${statusCell(v.id, v.status)}<td>${v.registration_number}</td><td>${v.model||'-'}</td><td>${v.type||'-'}</td>
-    <td>${v.region||'-'}</td><td>${fmtNum(v.max_load_capacity,0)} kg</td><td>${statusBadge(v.status)}</td><td>${retireBtn}</td></tr>`;
+    <td>${v.region||'-'}</td><td>${fmtNum(v.odometer,0)} km</td><td>${fmtNum(v.max_load_capacity,0)} kg</td><td>${statusBadge(v.status)}</td><td>${retireBtn}</td></tr>`;
   }).join('');
 });
 
