@@ -26,7 +26,9 @@ def add_vehicle():
     model=data['model'],
     type=data['type'],
     max_load_capacity=data['max_load_capacity'],
-    odometer=data.get('odometer', 0)
+    odometer=data.get('odometer', 0),
+    region=data.get('region', 'Unassigned'),
+    acquisition_cost=data.get('acquisition_cost', 0)
 )
     db.session.add(vehicle)
     db.session.commit()
@@ -307,6 +309,40 @@ def get_maintenance():
     m = Maintenance.query.all()
     return jsonify([{"id": x.id, "vehicle_id": x.vehicle_id, "description": x.description,
         "status": x.status} for x in m])
+
+
+# ---------- REPORTS ----------
+@app.route('/reports', methods=['GET'])
+def get_reports():
+    vehicles = Vehicle.query.all()
+    result = []
+    for v in vehicles:
+        fuel_logs = FuelLog.query.filter_by(vehicle_id=v.id).all()
+        expenses = Expense.query.filter_by(vehicle_id=v.id).all()
+        total_fuel_liters = sum(f.liters for f in fuel_logs)
+        total_fuel_cost = sum(f.cost for f in fuel_logs)
+        total_expense = sum(e.amount for e in expenses)
+        maintenance_cost = sum(e.amount for e in expenses if e.type == 'Maintenance')
+        fuel_efficiency = round(v.odometer / total_fuel_liters, 2) if total_fuel_liters else 0
+        total_cost = total_fuel_cost + total_expense
+        roi = round((0 - total_cost) / v.acquisition_cost, 3) if v.acquisition_cost else 0
+        result.append({
+            "vehicle_id": v.id, "registration_number": v.registration_number,
+            "type": v.type, "region": v.region, "status": v.status,
+            "fuel_efficiency": fuel_efficiency, "total_operational_cost": total_cost,
+            "roi": roi
+        })
+    return jsonify(result)
+
+# ---------- RETIRE VEHICLE ----------
+@app.route('/vehicles/<int:id>/retire', methods=['PUT'])
+def retire_vehicle(id):
+    v = Vehicle.query.get(id)
+    if not v: return jsonify({"error": "not found"}), 404
+    if v.status == 'On Trip': return jsonify({"error": "Cannot retire a vehicle on trip"}), 400
+    v.status = 'Retired'
+    db.session.commit()
+    return jsonify({"message": "Vehicle retired"}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)

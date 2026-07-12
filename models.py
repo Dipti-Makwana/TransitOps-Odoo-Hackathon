@@ -12,6 +12,8 @@ class Vehicle(db.Model):
     max_load_capacity = db.Column(db.Float, nullable=False)
     odometer = db.Column(db.Float, default=0)
     status = db.Column(db.String(20), default='Available')  # Available, On Trip, In Shop, Retired
+    acquisition_cost = db.Column(db.Float, default=0)
+    region = db.Column(db.String(50), default='Unassigned')
 
 # ---------- DRIVERS TABLE ----------
 class Driver(db.Model):
