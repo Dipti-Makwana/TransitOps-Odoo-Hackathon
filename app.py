@@ -1,7 +1,9 @@
 from flask import Flask
 from models import db, Vehicle, Driver, Trip, Maintenance, FuelLog, Expense
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 db.init_app(app)
 
@@ -276,6 +278,34 @@ def get_dashboard():
         "drivers_on_duty": drivers_on_duty,
         "fleet_utilization_percent": round(fleet_utilization, 2)
     }), 200
+ 
+@app.route('/vehicles/<int:id>', methods=['GET'])
+def get_vehicle(id):
+    v = Vehicle.query.get(id)
+    if not v: return jsonify({"error": "not found"}), 404
+    return jsonify({"id": v.id, "registration_number": v.registration_number,
+        "model": v.model, "type": v.type, "max_load_capacity": v.max_load_capacity,
+        "odometer": v.odometer, "status": v.status})
+
+@app.route('/drivers/<int:id>', methods=['GET'])
+def get_driver(id):
+    d = Driver.query.get(id)
+    if not d: return jsonify({"error": "not found"}), 404
+    return jsonify({"id": d.id, "name": d.name, "license_number": d.license_number,
+        "license_expiry_date": str(d.license_expiry_date), "safety_score": d.safety_score, "status": d.status})
+
+@app.route('/trips', methods=['GET'])
+def get_trips():
+    trips = Trip.query.all()
+    return jsonify([{"id": t.id, "source": t.source, "destination": t.destination,
+        "vehicle_id": t.vehicle_id, "driver_id": t.driver_id, "cargo_weight": t.cargo_weight,
+        "trip_status": t.trip_status} for t in trips])
+
+@app.route('/maintenance', methods=['GET'])
+def get_maintenance():
+    m = Maintenance.query.all()
+    return jsonify([{"id": x.id, "vehicle_id": x.vehicle_id, "description": x.description,
+        "status": x.status} for x in m])
 
 if __name__ == '__main__':
     app.run(debug=True)
