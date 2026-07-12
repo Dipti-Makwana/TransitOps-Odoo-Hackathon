@@ -1,74 +1,465 @@
-<!-- workspace/templates/drivers.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fleet Management - Drivers</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TransitOps — Fleet Operations</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --odoo-purple:#714B67;
+    --odoo-purple-dark:#5a3c53;
+    --odoo-bg:#f4f2f6;
+  }
+  body{background:var(--odoo-bg); font-family:'Segoe UI',Roboto,Arial,sans-serif;}
+  .sidebar{
+    background:var(--odoo-purple); min-height:100vh; width:230px; position:fixed; top:0; left:0; z-index:100;
+    display:flex; flex-direction:column; padding:1rem 0;
+  }
+  .sidebar .brand{color:#fff; font-weight:700; font-size:1.25rem; padding:0.5rem 1.25rem 1.5rem;}
+  .sidebar .nav-link{color:#e5d9e1; padding:.65rem 1.25rem; border-radius:0; font-size:.95rem; cursor:pointer;}
+  .sidebar .nav-link i{width:22px;}
+  .sidebar .nav-link.active, .sidebar .nav-link:hover{background:var(--odoo-purple-dark); color:#fff;}
+  .main{margin-left:230px; padding:1.75rem 2rem;}
+  .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;}
+  .kpi-card{border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.06); padding:1.1rem 1.3rem;}
+  .kpi-value{font-size:1.7rem; font-weight:700; color:var(--odoo-purple);}
+  .kpi-label{font-size:.8rem; color:#777; text-transform:uppercase; letter-spacing:.03em;}
+  .card{border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.06);}
+  .btn-odoo{background:var(--odoo-purple); border-color:var(--odoo-purple); color:#fff;}
+  .btn-odoo:hover{background:var(--odoo-purple-dark); color:#fff;}
+  .badge-status{font-weight:500; font-size:.72rem;}
+  .section{display:none;}
+  .section.active{display:block;}
+  table thead{background:#f8f6f9;}
+  #loginScreen{
+    position:fixed; inset:0; background:linear-gradient(135deg,var(--odoo-purple),#3d2938);
+    display:flex; align-items:center; justify-content:center; z-index:1000;
+  }
+  #loginScreen .card{width:360px; border-radius:16px;}
+  .toast-container{z-index:2000;}
+</style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans">
-    <div class="flex min-h-screen">
-        <!-- Sidebar Navigation -->
-        <aside class="w-64 bg-slate-900 text-white p-6 flex flex-col gap-6">
-            <h1 class="text-xl font-bold tracking-wider">LogiTrack</h1>
-            <nav class="flex flex-col gap-2">
-                <a href="dashboard.html" class="hover:bg-slate-800 px-4 py-2.5 rounded-lg font-medium transition">Dashboard</a>
-                <a href="vehicles.html" class="hover:bg-slate-800 px-4 py-2.5 rounded-lg font-medium transition">Vehicles</a>
-                <a href="drivers.html" class="bg-blue-600 px-4 py-2.5 rounded-lg font-medium transition">Drivers</a>
-                <a href="trips.html" class="hover:bg-slate-800 px-4 py-2.5 rounded-lg font-medium transition">Trips & Bookings</a>
-            </nav>
-        </aside>
+<body>
 
-        <!-- Main Content Area -->
-        <main class="flex-1 p-8 max-w-4xl">
-            <header class="mb-8">
-                <h2 class="text-3xl font-bold text-slate-900">Driver Registration</h2>
-                <p class="text-slate-500 mt-1">Onboard network personnel and track their regulatory commercial licensing.</p>
-            </header>
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="card p-4">
+    <h4 class="text-center mb-1" style="color:var(--odoo-purple); font-weight:700;">TransitOps</h4>
+    <p class="text-center text-muted mb-4" style="font-size:.85rem;">Smart Transport Operations Platform</p>
+    <form id="loginForm">
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-control" id="loginEmail" required value="admin@transitops.com">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-control" id="loginPassword" required value="admin123">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Role</label>
+        <select class="form-select" id="loginRole">
+          <option>Fleet Manager</option>
+          <option>Driver</option>
+          <option>Safety Officer</option>
+          <option>Financial Analyst</option>
+        </select>
+      </div>
+      <button class="btn btn-odoo w-100">Sign In</button>
+    </form>
+  </div>
+</div>
 
-            <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-                <form action="#" method="POST" class="flex flex-col gap-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-medium text-slate-600 mb-1">First Name</label>
-                            <input type="text" placeholder="John" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-600 mb-1">Last Name</label>
-                            <input type="text" placeholder="Doe" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-600 mb-1">Commercial Driver's License (CDL) Number</label>
-                            <input type="text" placeholder="DL-9923847-X" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-600 mb-1">License Class / Type</label>
-                            <select class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option>Class A (Combination Vehicles)</option>
-                                <option>Class B (Heavy Straight Vehicles)</option>
-                                <option>Class C (Standard Commercial Commercial)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-600 mb-1">License Expiration Date</label>
-                            <input type="date" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-600 mb-1">Contact Phone Number</label>
-                            <input type="tel" placeholder="+1 (555) 000-0000" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                    </div>
-                    
-                    <hr class="border-slate-100 my-2">
-
-                    <div class="flex justify-end gap-3">
-                        <button type="button" class="px-5 py-2.5 rounded-lg border border-slate-200 font-medium text-slate-600 hover:bg-slate-50 transition">Cancel</button>
-                        <button type="submit" class="px-5 py-2.5 rounded-lg bg-blue-600 font-medium text-white hover:bg-blue-700 transition">Complete Registration</button>
-                    </div>
-                </form>
-            </div>
-        </main>
+<!-- APP -->
+<div id="app" style="display:none;">
+  <div class="sidebar">
+    <div class="brand"><i class="bi bi-truck"></i> TransitOps</div>
+    <a class="nav-link active" data-section="dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a>
+    <a class="nav-link" data-section="vehicles"><i class="bi bi-truck-front"></i> Vehicles</a>
+    <a class="nav-link" data-section="drivers"><i class="bi bi-person-badge"></i> Drivers</a>
+    <a class="nav-link" data-section="trips"><i class="bi bi-signpost-split"></i> Trips</a>
+    <a class="nav-link" data-section="maintenance"><i class="bi bi-tools"></i> Maintenance</a>
+    <a class="nav-link" data-section="expenses"><i class="bi bi-fuel-pump"></i> Fuel & Expenses</a>
+    <div class="mt-auto px-3 pt-4">
+      <a class="nav-link" id="logoutBtn"><i class="bi bi-box-arrow-left"></i> Logout</a>
     </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <h4 id="pageTitle" class="mb-0 fw-bold">Dashboard</h4>
+      <div class="text-muted" id="userChip"></div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="section active" id="section-dashboard">
+      <div class="row g-3 mb-4" id="kpiRow"></div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="card p-3"><canvas id="statusChart" height="180"></canvas></div>
+        </div>
+        <div class="col-md-6">
+          <div class="card p-3"><canvas id="tripChart" height="180"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VEHICLES -->
+    <div class="section" id="section-vehicles">
+      <div class="card p-3 mb-3">
+        <h6 class="fw-bold mb-3">Add Vehicle</h6>
+        <form id="vehicleForm" class="row g-2">
+          <div class="col-md-2"><input required class="form-control" placeholder="Reg. Number" id="v_reg"></div>
+          <div class="col-md-2"><input required class="form-control" placeholder="Model" id="v_model"></div>
+          <div class="col-md-2">
+            <select class="form-select" id="v_type">
+              <option>Truck</option><option>Van</option><option>Pickup</option><option>Trailer</option>
+            </select>
+          </div>
+          <div class="col-md-2"><input required type="number" class="form-control" placeholder="Max Load (kg)" id="v_load"></div>
+          <div class="col-md-2"><button class="btn btn-odoo w-100">Add Vehicle</button></div>
+        </form>
+      </div>
+      <div class="card p-3">
+        <div class="d-flex justify-content-between mb-2">
+          <h6 class="fw-bold">Vehicle Registry</h6>
+          <input class="form-control form-control-sm w-25" placeholder="Search reg. number..." id="vehicleSearch">
+        </div>
+        <table class="table table-hover align-middle">
+          <thead><tr><th>ID</th><th>Reg. No</th><th>Model</th><th>Type</th><th>Max Load</th><th>Status</th></tr></thead>
+          <tbody id="vehicleTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DRIVERS -->
+    <div class="section" id="section-drivers">
+      <div class="card p-3 mb-3">
+        <h6 class="fw-bold mb-3">Add Driver</h6>
+        <form id="driverForm" class="row g-2">
+          <div class="col-md-3"><input required class="form-control" placeholder="Name" id="d_name"></div>
+          <div class="col-md-3"><input required class="form-control" placeholder="License Number" id="d_license"></div>
+          <div class="col-md-3"><input required type="date" class="form-control" id="d_expiry"></div>
+          <div class="col-md-3"><button class="btn btn-odoo w-100">Add Driver</button></div>
+        </form>
+      </div>
+      <div class="card p-3">
+        <h6 class="fw-bold mb-2">Driver Roster</h6>
+        <table class="table table-hover align-middle">
+          <thead><tr><th>ID</th><th>Name</th><th>License</th><th>Expiry</th><th>Safety Score</th><th>Status</th></tr></thead>
+          <tbody id="driverTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TRIPS -->
+    <div class="section" id="section-trips">
+      <div class="card p-3 mb-3">
+        <h6 class="fw-bold mb-3">Dispatch New Trip</h6>
+        <form id="tripForm" class="row g-2">
+          <div class="col-md-2"><input required class="form-control" placeholder="Source" id="t_source"></div>
+          <div class="col-md-2"><input required class="form-control" placeholder="Destination" id="t_dest"></div>
+          <div class="col-md-2"><select required class="form-select" id="t_vehicle"><option value="">Vehicle...</option></select></div>
+          <div class="col-md-2"><select required class="form-select" id="t_driver"><option value="">Driver...</option></select></div>
+          <div class="col-md-2"><input required type="number" class="form-control" placeholder="Cargo (kg)" id="t_cargo"></div>
+          <div class="col-md-2"><button class="btn btn-odoo w-100">Dispatch</button></div>
+        </form>
+      </div>
+      <div class="card p-3">
+        <h6 class="fw-bold mb-2">Active & Past Trips</h6>
+        <table class="table table-hover align-middle">
+          <thead><tr><th>ID</th><th>Route</th><th>Vehicle</th><th>Driver</th><th>Cargo</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="tripTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MAINTENANCE -->
+    <div class="section" id="section-maintenance">
+      <div class="card p-3 mb-3">
+        <h6 class="fw-bold mb-3">Log Maintenance</h6>
+        <form id="maintForm" class="row g-2">
+          <div class="col-md-4"><select required class="form-select" id="m_vehicle"><option value="">Vehicle...</option></select></div>
+          <div class="col-md-5"><input required class="form-control" placeholder="Description (e.g. Oil Change)" id="m_desc"></div>
+          <div class="col-md-3"><button class="btn btn-odoo w-100">Send to Shop</button></div>
+        </form>
+      </div>
+      <div class="card p-3">
+        <h6 class="fw-bold mb-2">Maintenance Log</h6>
+        <table class="table table-hover align-middle">
+          <thead><tr><th>ID</th><th>Vehicle</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="maintTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FUEL & EXPENSES -->
+    <div class="section" id="section-expenses">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="card p-3">
+            <h6 class="fw-bold mb-3">Add Fuel Log</h6>
+            <form id="fuelForm" class="row g-2">
+              <div class="col-12"><select required class="form-select" id="f_vehicle"><option value="">Vehicle...</option></select></div>
+              <div class="col-6"><input required type="number" step="0.1" class="form-control" placeholder="Liters" id="f_liters"></div>
+              <div class="col-6"><input required type="number" step="0.01" class="form-control" placeholder="Cost" id="f_cost"></div>
+              <div class="col-12"><button class="btn btn-odoo w-100">Add Fuel Log</button></div>
+            </form>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card p-3">
+            <h6 class="fw-bold mb-3">Add Expense</h6>
+            <form id="expForm" class="row g-2">
+              <div class="col-12"><select required class="form-select" id="e_vehicle"><option value="">Vehicle...</option></select></div>
+              <div class="col-6">
+                <select class="form-select" id="e_type"><option>Toll</option><option>Maintenance</option><option>Fine</option><option>Parking</option></select>
+              </div>
+              <div class="col-6"><input required type="number" step="0.01" class="form-control" placeholder="Amount" id="e_amount"></div>
+              <div class="col-12"><button class="btn btn-odoo w-100">Add Expense</button></div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="card p-3 mt-3">
+        <h6 class="fw-bold mb-2">Operational Cost Lookup</h6>
+        <div class="d-flex gap-2 mb-2">
+          <select class="form-select w-25" id="cost_vehicle"><option value="">Select vehicle...</option></select>
+          <button class="btn btn-odoo" id="costLookupBtn">Get Total Cost</button>
+        </div>
+        <div id="costResult" class="text-muted"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastHost"></div>
+
+<script>
+const API = 'http://127.0.0.1:5000';
+let VEHICLES = [], DRIVERS = [], TRIPS = [], MAINT = [];
+
+// ---------- AUTH (client-side only, ties to PDF's RBAC front-end requirement) ----------
+document.getElementById('loginForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const role = document.getElementById('loginRole').value;
+  const email = document.getElementById('loginEmail').value;
+  sessionStorage.setItem('to_user', JSON.stringify({email, role}));
+  boot();
+});
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  sessionStorage.removeItem('to_user');
+  location.reload();
+});
+function boot(){
+  const user = JSON.parse(sessionStorage.getItem('to_user') || 'null');
+  if(!user){ return; }
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('userChip').innerHTML = `<i class="bi bi-person-circle"></i> ${user.email} <span class="badge bg-secondary ms-1">${user.role}</span>`;
+  refreshAll();
+}
+
+// ---------- NAV ----------
+document.querySelectorAll('.nav-link[data-section]').forEach(link=>{
+  link.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav-link[data-section]').forEach(l=>l.classList.remove('active'));
+    link.classList.add('active');
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    document.getElementById('section-'+link.dataset.section).classList.add('active');
+    document.getElementById('pageTitle').textContent = link.textContent.trim();
+  });
+});
+
+// ---------- TOAST ----------
+function toast(msg, ok=true){
+  const el = document.createElement('div');
+  el.className = `toast align-items-center text-bg-${ok?'success':'danger'} border-0 show`;
+  el.innerHTML = `<div class="d-flex"><div class="toast-body">${msg}</div></div>`;
+  document.getElementById('toastHost').appendChild(el);
+  setTimeout(()=>el.remove(), 3500);
+}
+
+// ---------- API HELPERS ----------
+async function apiGet(path){ const r = await fetch(API+path); return r.json(); }
+async function apiPost(path, body){
+  const r = await fetch(API+path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const data = await r.json();
+  if(!r.ok){ toast(data.error || 'Error', false); throw new Error(data.error); }
+  return data;
+}
+async function apiPut(path){
+  const r = await fetch(API+path, {method:'PUT'});
+  const data = await r.json();
+  if(!r.ok){ toast(data.error || 'Error', false); throw new Error(data.error); }
+  return data;
+}
+
+function statusBadge(status){
+  const map = {
+    'Available':'success','On Trip':'primary','In Shop':'warning text-dark','Retired':'secondary',
+    'Off Duty':'secondary','Suspended':'danger','Draft':'secondary','Dispatched':'primary',
+    'Completed':'success','Cancelled':'danger','Active':'warning text-dark','Closed':'success'
+  };
+  return `<span class="badge badge-status bg-${map[status]||'secondary'}">${status}</span>`;
+}
+
+// ---------- REFRESH ----------
+async function refreshAll(){
+  try{
+    [VEHICLES, DRIVERS, TRIPS, MAINT] = await Promise.all([
+      apiGet('/vehicles'), apiGet('/drivers'), apiGet('/trips').catch(()=>[]), apiGet('/maintenance').catch(()=>[])
+    ]);
+  }catch(err){ toast('Cannot reach backend at '+API+' — is app.py running with CORS enabled?', false); return; }
+  renderVehicles(); renderDrivers(); renderTrips(); renderMaint(); renderDashboard(); fillDropdowns();
+}
+
+function renderVehicles(){
+  document.getElementById('vehicleTable').innerHTML = VEHICLES.map(v=>`
+    <tr><td>${v.id}</td><td>${v.registration_number}</td><td>${v.model||'-'}</td><td>${v.type||'-'}</td>
+    <td>${v.max_load_capacity||'-'} kg</td><td>${statusBadge(v.status)}</td></tr>`).join('');
+}
+function renderDrivers(){
+  document.getElementById('driverTable').innerHTML = DRIVERS.map(d=>`
+    <tr><td>${d.id}</td><td>${d.name}</td><td>${d.license_number}</td><td>${d.license_expiry_date||'-'}</td>
+    <td>${d.safety_score??'-'}</td><td>${statusBadge(d.status)}</td></tr>`).join('');
+}
+function renderTrips(){
+  document.getElementById('tripTable').innerHTML = TRIPS.map(t=>{
+    const veh = VEHICLES.find(v=>v.id===t.vehicle_id);
+    const drv = DRIVERS.find(d=>d.id===t.driver_id);
+    let actions = '';
+    if(t.trip_status === 'Dispatched'){
+      actions = `<button class="btn btn-sm btn-outline-success me-1" onclick="completeTrip(${t.id})">Complete</button>
+                 <button class="btn btn-sm btn-outline-danger" onclick="cancelTrip(${t.id})">Cancel</button>`;
+    }
+    return `<tr><td>${t.id}</td><td>${t.source} → ${t.destination}</td><td>${veh?veh.registration_number:t.vehicle_id}</td>
+      <td>${drv?drv.name:t.driver_id}</td><td>${t.cargo_weight} kg</td><td>${statusBadge(t.trip_status)}</td><td>${actions}</td></tr>`;
+  }).join('');
+}
+function renderMaint(){
+  document.getElementById('maintTable').innerHTML = MAINT.map(m=>{
+    const veh = VEHICLES.find(v=>v.id===m.vehicle_id);
+    const action = m.status==='Active' ? `<button class="btn btn-sm btn-outline-success" onclick="closeMaint(${m.id})">Close</button>` : '';
+    return `<tr><td>${m.id}</td><td>${veh?veh.registration_number:m.vehicle_id}</td><td>${m.description}</td><td>${statusBadge(m.status)}</td><td>${action}</td></tr>`;
+  }).join('');
+}
+
+function fillDropdowns(){
+  const availVeh = VEHICLES.filter(v=>v.status==='Available');
+  const availDrv = DRIVERS.filter(d=>d.status==='Available');
+  const vehOpts = VEHICLES.map(v=>`<option value="${v.id}">${v.registration_number}</option>`).join('');
+  document.getElementById('t_vehicle').innerHTML = '<option value="">Vehicle...</option>' + availVeh.map(v=>`<option value="${v.id}">${v.registration_number} (max ${v.max_load_capacity}kg)</option>`).join('');
+  document.getElementById('t_driver').innerHTML = '<option value="">Driver...</option>' + availDrv.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  ['m_vehicle','f_vehicle','e_vehicle','cost_vehicle'].forEach(id=>{
+    document.getElementById(id).innerHTML = '<option value="">Vehicle...</option>' + vehOpts;
+  });
+}
+
+function renderDashboard(){
+  const active = VEHICLES.filter(v=>v.status!=='Retired').length;
+  const available = VEHICLES.filter(v=>v.status==='Available').length;
+  const inShop = VEHICLES.filter(v=>v.status==='In Shop').length;
+  const onTrip = VEHICLES.filter(v=>v.status==='On Trip').length;
+  const activeTrips = TRIPS.filter(t=>t.trip_status==='Dispatched').length;
+  const util = active ? Math.round((onTrip/active)*100) : 0;
+
+  const kpis = [
+    ['Active Vehicles', active, 'bi-truck-front'],
+    ['Available', available, 'bi-check-circle'],
+    ['In Maintenance', inShop, 'bi-tools'],
+    ['Active Trips', activeTrips, 'bi-signpost-split'],
+    ['Fleet Utilization', util+'%', 'bi-graph-up'],
+  ];
+  document.getElementById('kpiRow').innerHTML = kpis.map(([label,val,icon])=>`
+    <div class="col"><div class="kpi-card card">
+      <div class="d-flex justify-content-between"><div>
+        <div class="kpi-value">${val}</div><div class="kpi-label">${label}</div>
+      </div><i class="bi ${icon} fs-3 text-muted"></i></div>
+    </div></div>`).join('');
+
+  drawChart('statusChart', 'doughnut', ['Available','On Trip','In Shop','Retired'],
+    ['Available','On Trip','In Shop','Retired'].map(s=>VEHICLES.filter(v=>v.status===s).length),
+    'Vehicle Status Breakdown');
+  drawChart('tripChart', 'bar', ['Draft','Dispatched','Completed','Cancelled'],
+    ['Draft','Dispatched','Completed','Cancelled'].map(s=>TRIPS.filter(t=>t.trip_status===s).length),
+    'Trips by Status');
+}
+let chartRefs = {};
+function drawChart(id, type, labels, data, title){
+  if(chartRefs[id]) chartRefs[id].destroy();
+  chartRefs[id] = new Chart(document.getElementById(id), {
+    type, data:{labels, datasets:[{data, backgroundColor:['#714B67','#8f6a84','#b79aad','#d9c9d4','#e5d9e1']}]},
+    options:{plugins:{title:{display:true, text:title}}, responsive:true}
+  });
+}
+
+// ---------- FORMS ----------
+document.getElementById('vehicleForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  await apiPost('/vehicles', {
+    registration_number: v_reg.value, model: v_model.value, type: v_type.value,
+    max_load_capacity: parseFloat(v_load.value)
+  });
+  toast('Vehicle added'); e.target.reset(); refreshAll();
+});
+
+document.getElementById('driverForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  await apiPost('/drivers', {
+    name: d_name.value, license_number: d_license.value, license_expiry_date: d_expiry.value
+  });
+  toast('Driver added'); e.target.reset(); refreshAll();
+});
+
+document.getElementById('tripForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  await apiPost('/trips', {
+    source: t_source.value, destination: t_dest.value,
+    vehicle_id: parseInt(t_vehicle.value), driver_id: parseInt(t_driver.value),
+    cargo_weight: parseFloat(t_cargo.value)
+  });
+  toast('Trip dispatched'); e.target.reset(); refreshAll();
+});
+async function completeTrip(id){ await apiPut(`/trips/${id}/complete`); toast('Trip completed'); refreshAll(); }
+async function cancelTrip(id){ await apiPut(`/trips/${id}/cancel`); toast('Trip cancelled'); refreshAll(); }
+
+document.getElementById('maintForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  await apiPost('/maintenance', { vehicle_id: parseInt(m_vehicle.value), description: m_desc.value });
+  toast('Vehicle sent to shop'); e.target.reset(); refreshAll();
+});
+async function closeMaint(id){ await apiPut(`/maintenance/${id}/close`); toast('Maintenance closed'); refreshAll(); }
+
+document.getElementById('fuelForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  await apiPost('/fuel', { vehicle_id: parseInt(f_vehicle.value), liters: parseFloat(f_liters.value), cost: parseFloat(f_cost.value) });
+  toast('Fuel log added'); e.target.reset();
+});
+document.getElementById('expForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  await apiPost('/expenses', { vehicle_id: parseInt(e_vehicle.value), type: e_type.value, amount: parseFloat(e_amount.value) });
+  toast('Expense added'); e.target.reset();
+});
+document.getElementById('costLookupBtn').addEventListener('click', async ()=>{
+  const id = cost_vehicle.value;
+  if(!id){ toast('Pick a vehicle first', false); return; }
+  const data = await apiGet(`/vehicles/${id}/cost`);
+  document.getElementById('costResult').innerHTML =
+    `Fuel: <b>${data.total_fuel_cost}</b> &nbsp;|&nbsp; Expenses: <b>${data.total_expense_cost}</b> &nbsp;|&nbsp; Total: <b>${data.total_operational_cost}</b>`;
+});
+document.getElementById('vehicleSearch').addEventListener('input', e=>{
+  const q = e.target.value.toLowerCase();
+  document.getElementById('vehicleTable').innerHTML = VEHICLES
+    .filter(v=>v.registration_number.toLowerCase().includes(q))
+    .map(v=>`<tr><td>${v.id}</td><td>${v.registration_number}</td><td>${v.model||'-'}</td><td>${v.type||'-'}</td>
+    <td>${v.max_load_capacity||'-'} kg</td><td>${statusBadge(v.status)}</td></tr>`).join('');
+});
+
+// auto-login if session exists
+boot();
+</script>
 </body>
 </html>
