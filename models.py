@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 
 db = SQLAlchemy()
 
@@ -30,3 +31,11 @@ class Trip(db.Model):
     driver_id = db.Column(db.Integer, db.ForeignKey('driver.id'), nullable=False)
     cargo_weight = db.Column(db.Float, nullable=False)
     trip_status = db.Column(db.String(20), default='Draft')  # Draft, Dispatched, Completed, Cancelled
+
+    # ---------- MAINTENANCE TABLE ----------
+class Maintenance(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicle.id'), nullable=False)
+    description = db.Column(db.String(100), nullable=False)  # e.g. "Oil Change"
+    status = db.Column(db.String(20), default='Active')  # Active, Closed
+    created_date = db.Column(db.Date, default=datetime.utcnow)

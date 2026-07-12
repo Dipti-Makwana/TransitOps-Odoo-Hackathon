@@ -1,5 +1,5 @@
 from flask import Flask
-from models import db, Vehicle, Driver, Trip
+from models import db, Vehicle, Driver, Trip, Maintenance
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -144,6 +144,49 @@ def cancel_trip(trip_id):
     db.session.commit()
 
     return jsonify({"message": "Trip cancelled", "trip_id": trip.id}), 200
+
+    # ---------- CREATE MAINTENANCE RECORD ----------
+@app.route('/maintenance', methods=['POST'])
+def create_maintenance():
+    data = request.json
+    vehicle = Vehicle.query.get(data['vehicle_id'])
+
+    if not vehicle:
+        return jsonify({"error": "Vehicle not found"}), 404
+
+    maintenance = Maintenance(
+        vehicle_id=vehicle.id,
+        description=data['description']
+    )
+
+    vehicle.status = 'In Shop'  # auto-switch, per business rule
+
+    db.session.add(maintenance)
+    db.session.commit()
+
+    return jsonify({"message": "Maintenance record created", "maintenance_id": maintenance.id}), 201
+
+# ---------- CLOSE MAINTENANCE RECORD ----------
+@app.route('/maintenance/<int:maintenance_id>/close', methods=['PUT'])
+def close_maintenance(maintenance_id):
+    maintenance = Maintenance.query.get(maintenance_id)
+
+    if not maintenance:
+        return jsonify({"error": "Maintenance record not found"}), 404
+    if maintenance.status != 'Active':
+        return jsonify({"error": "Maintenance record already closed"}), 400
+
+    vehicle = Vehicle.query.get(maintenance.vehicle_id)
+
+    maintenance.status = 'Closed'
+
+    # Restore vehicle to Available, unless it's Retired
+    if vehicle.status != 'Retired':
+        vehicle.status = 'Available'
+
+    db.session.commit()
+
+    return jsonify({"message": "Maintenance closed, vehicle status updated"}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
