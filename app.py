@@ -124,9 +124,28 @@ def complete_trip(trip_id):
 
     return jsonify({"message": "Trip completed", "trip_id": trip.id}), 200
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    # ---------- CANCEL TRIP ----------
+@app.route('/trips/<int:trip_id>/cancel', methods=['PUT'])
+def cancel_trip(trip_id):
+    trip = Trip.query.get(trip_id)
+
+    if not trip:
+        return jsonify({"error": "Trip not found"}), 404
+    if trip.trip_status != 'Dispatched':
+        return jsonify({"error": f"Trip is {trip.trip_status}, cannot cancel"}), 400
+
+    vehicle = Vehicle.query.get(trip.vehicle_id)
+    driver = Driver.query.get(trip.driver_id)
+
+    trip.trip_status = 'Cancelled'
+    vehicle.status = 'Available'
+    driver.status = 'Available'
+
+    db.session.commit()
+
+    return jsonify({"message": "Trip cancelled", "trip_id": trip.id}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
+
     
