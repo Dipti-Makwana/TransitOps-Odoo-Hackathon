@@ -1,4 +1,5 @@
 const API = 'http://127.0.0.1:5000';
+const CURRENCY_SYMBOL = '₹';
 let VEHICLES = [], DRIVERS = [], TRIPS = [], MAINT = [], REPORTS = [];
 let ACTIVE_FILTERS = { type:'', status:'', region:'' };
 
@@ -12,6 +13,17 @@ const STATUS_BADGE = {
   'Off Duty':'secondary','Suspended':'danger','Draft':'secondary','Dispatched':'primary',
   'Completed':'success','Cancelled':'danger','Active':'warning text-dark','Closed':'success'
 };
+
+// ---------- Fix 2: number/currency formatting ----------
+function fmtCurrency(n){
+  if(n === null || n === undefined || n === '' || isNaN(n)) return '—';
+  return CURRENCY_SYMBOL + Number(n).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtNum(n, decimals=1){
+  if(n === null || n === undefined || n === '' || isNaN(n)) return '—';
+  return Number(n).toLocaleString('en-IN', {minimumFractionDigits:decimals, maximumFractionDigits:decimals});
+}
+
 function statusBadge(status){
   return `<span class="badge badge-status bg-${STATUS_BADGE[status]||'secondary'}">${status}</span>`;
 }
@@ -53,21 +65,29 @@ function boot(){
   if(!user){ return; }
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('app').style.display='block';
-  document.getElementById('userChip').innerHTML = `<i class="bi bi-person-circle"></i> ${user.email} <span class="badge bg-secondary ms-1">${user.role}</span>`;
+  document.getElementById('userChip').innerHTML = `<i class="bi bi-person-circle" aria-hidden="true"></i> ${user.email} <span class="badge bg-secondary ms-1">${user.role}</span>`;
   showSkeletons();
   refreshAll();
 }
 
-// ---------- THEME ----------
-document.getElementById('themeToggle').addEventListener('click', ()=>{
+// ---------- THEME (Fix 4: accessible toggle) ----------
+function toggleTheme(){
   document.body.classList.toggle('dark');
+  const btn = document.getElementById('themeToggle');
   const icon = document.querySelector('#themeToggle i');
   const isDark = document.body.classList.contains('dark');
   icon.className = isDark ? 'bi bi-sun' : 'bi bi-moon-stars';
+  icon.setAttribute('aria-hidden','true');
+  btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
   sessionStorage.setItem('to_theme', isDark ? 'dark' : 'light');
+}
+document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+document.getElementById('themeToggle').addEventListener('keydown', e=>{
+  if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleTheme(); }
 });
 if(sessionStorage.getItem('to_theme') === 'dark'){
   document.body.classList.add('dark');
+  document.getElementById('themeToggle').setAttribute('aria-label','Switch to light mode');
 }
 
 // ---------- NAV ----------
@@ -81,11 +101,13 @@ document.querySelectorAll('.nav-link[data-section]').forEach(link=>{
   });
 });
 
-// ---------- TOAST ----------
+// ---------- TOAST (Fix 3: icon + accessible role) ----------
 function toast(msg, ok=true){
   const el = document.createElement('div');
+  const icon = ok ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill';
   el.className = `toast align-items-center text-bg-${ok?'success':'danger'} border-0 show`;
-  el.innerHTML = `<div class="d-flex"><div class="toast-body">${msg}</div></div>`;
+  el.setAttribute('role', ok ? 'status' : 'alert');
+  el.innerHTML = `<div class="d-flex"><div class="toast-body"><i class="bi ${icon}" aria-hidden="true"></i> ${msg}</div></div>`;
   document.getElementById('toastHost').appendChild(el);
   setTimeout(()=>el.remove(), 3500);
 }
@@ -105,12 +127,13 @@ async function apiPut(path){
   return data;
 }
 
-// ---------- SKELETONS ----------
+// ---------- SKELETONS (Fix 5: reports skeleton + correct colspans) ----------
 function showSkeletons(){
-  document.getElementById('vehicleTable').innerHTML = skeletonRows(6);
+  document.getElementById('vehicleTable').innerHTML = skeletonRows(8); // id, reg, model, type, region, load, status, actions
   document.getElementById('driverTable').innerHTML = skeletonRows(6);
   document.getElementById('tripTable').innerHTML = skeletonRows(7);
   document.getElementById('maintTable').innerHTML = skeletonRows(5);
+  document.getElementById('reportsTable').innerHTML = skeletonRows(7);
 }
 
 // ---------- REFRESH ----------
@@ -139,7 +162,7 @@ function renderVehicles(){
     const retireBtn = v.status !== 'Retired' && v.status !== 'On Trip'
       ? `<button class="btn btn-sm btn-outline-secondary" onclick="retireVehicle(${v.id})">Retire</button>` : '';
     return `<tr>${statusCell(v.id, v.status)}<td>${v.registration_number}</td><td>${v.model||'-'}</td><td>${v.type||'-'}</td>
-    <td>${v.region||'-'}</td><td>${v.max_load_capacity||'-'} kg</td><td>${statusBadge(v.status)}</td><td>${retireBtn}</td></tr>`;
+    <td>${v.region||'-'}</td><td>${fmtNum(v.max_load_capacity,0)} kg</td><td>${statusBadge(v.status)}</td><td>${retireBtn}</td></tr>`;
   }).join('');
 }
 async function retireVehicle(id){
@@ -154,8 +177,8 @@ function renderDrivers(){
     let expiryCell = d.license_expiry_date||'-';
     if(d.license_expiry_date){
       const days = Math.ceil((new Date(d.license_expiry_date)-now)/86400000);
-      if(days < 0) expiryCell = `${d.license_expiry_date} <i class="bi bi-exclamation-triangle-fill text-danger" title="Expired"></i>`;
-      else if(days <= 30) expiryCell = `${d.license_expiry_date} <i class="bi bi-exclamation-triangle-fill text-warning" title="Expires in ${days}d"></i>`;
+      if(days < 0) expiryCell = `${d.license_expiry_date} <i class="bi bi-exclamation-triangle-fill text-danger" title="Expired" aria-label="Expired"></i>`;
+      else if(days <= 30) expiryCell = `${d.license_expiry_date} <i class="bi bi-exclamation-triangle-fill text-warning" title="Expires in ${days}d" aria-label="Expires in ${days} days"></i>`;
     }
     return `<tr>${statusCell(d.id, d.status)}<td>${d.name}</td><td>${d.license_number}</td><td>${expiryCell}</td>
     <td>${d.safety_score??'-'}</td><td>${statusBadge(d.status)}</td></tr>`;
@@ -173,7 +196,7 @@ function renderTrips(){
                  <button class="btn btn-sm btn-outline-danger" onclick="cancelTrip(${t.id})">Cancel</button>`;
     }
     return `<tr>${statusCell(t.id, t.trip_status)}<td>${t.source} → ${t.destination}</td><td>${veh?veh.registration_number:t.vehicle_id}</td>
-      <td>${drv?drv.name:t.driver_id}</td><td>${t.cargo_weight} kg</td><td>${statusBadge(t.trip_status)}</td><td>${actions}</td></tr>`;
+      <td>${drv?drv.name:t.driver_id}</td><td>${fmtNum(t.cargo_weight,0)} kg</td><td>${statusBadge(t.trip_status)}</td><td>${actions}</td></tr>`;
   }).join('');
 }
 function renderMaint(){
@@ -211,7 +234,7 @@ function renderReports(){
   if(!REPORTS.length){ el.innerHTML = emptyRow(7,'bi-bar-chart-line','No report data yet — add vehicles, fuel logs, and expenses first.'); return; }
   el.innerHTML = REPORTS.map(r=>`
     <tr>${statusCell(r.vehicle_id, r.status)}<td>${r.type||'-'}</td><td>${r.region||'-'}</td><td>${statusBadge(r.status)}</td>
-    <td>${r.fuel_efficiency}</td><td>${r.total_operational_cost}</td><td>${r.roi}</td></tr>`).join('');
+    <td>${fmtNum(r.fuel_efficiency)} km/L</td><td>${fmtCurrency(r.total_operational_cost)}</td><td>${fmtNum(r.roi)}%</td></tr>`).join('');
 }
 document.getElementById('csvExportBtn').addEventListener('click', ()=>{
   if(!REPORTS.length){ toast('No report data to export', false); return; }
@@ -272,7 +295,7 @@ function renderDashboard(){
     <div class="col"><div class="kpi-card card">
       <div class="d-flex justify-content-between"><div>
         <div class="kpi-value" id="kpi-${i}">0</div><div class="kpi-label">${label}</div>
-      </div><i class="bi ${icon} fs-3" style="color:var(--odoo-purple); opacity:.6;"></i></div>
+      </div><i class="bi ${icon} fs-3" style="color:var(--odoo-purple); opacity:.6;" aria-hidden="true"></i></div>
     </div></div>`).join('');
   kpis.forEach(([label,val,icon,suffix],i)=> animateValue(document.getElementById('kpi-'+i), val, suffix));
 
@@ -288,7 +311,7 @@ function renderDashboard(){
     let items = '';
     if(expiring.length) items += `<div class="alert-item">⚠ <b>${expiring.length}</b> driver license(s) expired or expiring within 30 days</div>`;
     if(inShop) items += `<div class="alert-item">🔧 <b>${inShop}</b> vehicle(s) currently in maintenance</div>`;
-    alertsEl.innerHTML = `<div class="alert-strip"><i class="bi bi-bell-fill"></i><div>${items}</div></div>`;
+    alertsEl.innerHTML = `<div class="alert-strip" role="status"><i class="bi bi-bell-fill" aria-hidden="true"></i><div>${items}</div></div>`;
   } else {
     alertsEl.innerHTML = '';
   }
@@ -368,15 +391,19 @@ document.getElementById('costLookupBtn').addEventListener('click', async ()=>{
   if(!id){ toast('Pick a vehicle first', false); return; }
   const data = await apiGet(`/vehicles/${id}/cost`);
   document.getElementById('costResult').innerHTML =
-    `Fuel: <b>${data.total_fuel_cost}</b> &nbsp;|&nbsp; Expenses: <b>${data.total_expense_cost}</b> &nbsp;|&nbsp; Total: <b>${data.total_operational_cost}</b>`;
+    `Fuel: <b>${fmtCurrency(data.total_fuel_cost)}</b> &nbsp;|&nbsp; Expenses: <b>${fmtCurrency(data.total_expense_cost)}</b> &nbsp;|&nbsp; Total: <b>${fmtCurrency(data.total_operational_cost)}</b>`;
 });
 document.getElementById('vehicleSearch').addEventListener('input', e=>{
   const q = e.target.value.toLowerCase();
   const filtered = VEHICLES.filter(v=>v.registration_number.toLowerCase().includes(q));
   const el = document.getElementById('vehicleTable');
-  if(!filtered.length){ el.innerHTML = emptyRow(6,'bi-search','No matching vehicles.'); return; }
-  el.innerHTML = filtered.map(v=>`<tr>${statusCell(v.id, v.status)}<td>${v.registration_number}</td><td>${v.model||'-'}</td><td>${v.type||'-'}</td>
-    <td>${v.max_load_capacity||'-'} kg</td><td>${statusBadge(v.status)}</td></tr>`).join('');
+  if(!filtered.length){ el.innerHTML = emptyRow(8,'bi-search','No matching vehicles.'); return; }
+  el.innerHTML = filtered.map(v=>{
+    const retireBtn = v.status !== 'Retired' && v.status !== 'On Trip'
+      ? `<button class="btn btn-sm btn-outline-secondary" onclick="retireVehicle(${v.id})">Retire</button>` : '';
+    return `<tr>${statusCell(v.id, v.status)}<td>${v.registration_number}</td><td>${v.model||'-'}</td><td>${v.type||'-'}</td>
+    <td>${v.region||'-'}</td><td>${fmtNum(v.max_load_capacity,0)} kg</td><td>${statusBadge(v.status)}</td><td>${retireBtn}</td></tr>`;
+  }).join('');
 });
 
 // auto-login if session exists
