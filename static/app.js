@@ -42,8 +42,16 @@ function skeletonRows(colspan, rows=3){
   return out;
 }
 
+// Safe helper: only attaches a listener if the element actually exists,
+// so one missing/misnamed ID in the HTML can never take down the rest of the script.
+function on(id, event, handler){
+  const el = document.getElementById(id);
+  if(!el){ console.warn(`[app.js] Element #${id} not found — skipping ${event} listener.`); return; }
+  el.addEventListener(event, handler);
+}
+
 // ---------- AUTH ----------
-document.getElementById('signInBtn').addEventListener('click', function(){
+on('signInBtn', 'click', function(){
   try{
     const role = document.getElementById('loginRole').value;
     const email = document.getElementById('loginEmail').value || 'user@transitops.com';
@@ -51,12 +59,11 @@ document.getElementById('signInBtn').addEventListener('click', function(){
     boot();
   }catch(err){
     const el = document.getElementById('loginError');
-    el.style.display = 'block';
-    el.textContent = 'Login error: ' + err.message;
+    if(el){ el.style.display = 'block'; el.textContent = 'Login error: ' + err.message; }
     console.error(err);
   }
 });
-document.getElementById('logoutBtn').addEventListener('click', ()=>{
+on('logoutBtn', 'click', ()=>{
   sessionStorage.removeItem('to_user');
   location.reload();
 });
@@ -110,8 +117,8 @@ function toggleTheme(){
   btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
   sessionStorage.setItem('to_theme', isDark ? 'dark' : 'light');
 }
-document.getElementById('themeToggle').addEventListener('click', toggleTheme);
-document.getElementById('themeToggle').addEventListener('keydown', e=>{
+on('themeToggle', 'click', toggleTheme);
+on('themeToggle', 'keydown', e=>{
   if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleTheme(); }
 });
 if(sessionStorage.getItem('to_theme') === 'dark'){
@@ -248,15 +255,15 @@ function fillRegionFilter(){
   sel.value = current;
 }
 ['filter_type','filter_status','filter_region'].forEach(id=>{
-  document.getElementById(id).addEventListener('change', e=>{
+  on(id, 'change', e=>{
     const key = id.replace('filter_','');
     ACTIVE_FILTERS[key] = e.target.value;
     renderVehicles(); renderDashboard();
   });
 });
-document.getElementById('filterResetBtn').addEventListener('click', ()=>{
+on('filterResetBtn', 'click', ()=>{
   ACTIVE_FILTERS = { type:'', status:'', region:'' };
-  ['filter_type','filter_status','filter_region'].forEach(id=>document.getElementById(id).value='');
+  ['filter_type','filter_status','filter_region'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   renderVehicles(); renderDashboard();
 });
 
@@ -267,7 +274,7 @@ function renderReports(){
     <tr>${statusCell(r.vehicle_id, r.status)}<td>${r.type||'-'}</td><td>${r.region||'-'}</td><td>${statusBadge(r.status)}</td>
     <td>${fmtNum(r.fuel_efficiency)} km/L</td><td>${fmtCurrency(r.total_operational_cost)}</td><td>${fmtNum(r.roi)}%</td></tr>`).join('');
 }
-document.getElementById('csvExportBtn').addEventListener('click', ()=>{
+on('csvExportBtn', 'click', ()=>{
   if(!REPORTS.length){ toast('No report data to export', false); return; }
   const headers = ['Reg No','Type','Region','Status','Fuel Efficiency (km/L)','Operational Cost','ROI'];
   const rows = REPORTS.map(r=>[r.registration_number,r.type,r.region,r.status,r.fuel_efficiency,r.total_operational_cost,r.roi]);
@@ -293,7 +300,8 @@ function fillDropdowns(){
   document.getElementById('t_vehicle').innerHTML = '<option value="">Vehicle...</option>' + availVeh.map(v=>`<option value="${v.id}">${v.registration_number} (max ${v.max_load_capacity}kg)</option>`).join('');
   document.getElementById('t_driver').innerHTML = '<option value="">Driver...</option>' + availDrv.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
   ['m_vehicle','f_vehicle','e_vehicle','cost_vehicle'].forEach(id=>{
-    document.getElementById(id).innerHTML = '<option value="">Vehicle...</option>' + vehOpts;
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = '<option value="">Vehicle...</option>' + vehOpts;
   });
 }
 
@@ -378,7 +386,7 @@ function drawChart(id, type, labels, data, colors, title){
 }
 
 // ---------- FORMS ----------
-document.getElementById('vehicleForm').addEventListener('submit', async e=>{
+on('vehicleForm', 'submit', async e=>{
   e.preventDefault();
   await apiPost('/vehicles', {
     registration_number: v_reg.value, model: v_model.value, type: v_type.value,
@@ -390,7 +398,7 @@ document.getElementById('vehicleForm').addEventListener('submit', async e=>{
   toast('Vehicle added'); e.target.reset(); refreshAll();
 });
 
-document.getElementById('driverForm').addEventListener('submit', async e=>{
+on('driverForm', 'submit', async e=>{
   e.preventDefault();
   await apiPost('/drivers', {
     name: d_name.value, license_number: d_license.value,
@@ -401,7 +409,7 @@ document.getElementById('driverForm').addEventListener('submit', async e=>{
   toast('Driver added'); e.target.reset(); refreshAll();
 });
 
-document.getElementById('tripForm').addEventListener('submit', async e=>{
+on('tripForm', 'submit', async e=>{
   e.preventDefault();
   // Guard rails per PDF 4 (server should also enforce these)
   const vehId = parseInt(t_vehicle.value);
@@ -426,31 +434,31 @@ async function cancelTrip(id){
   await apiPut(`/trips/${id}/cancel`); toast('Trip cancelled'); refreshAll();
 }
 
-document.getElementById('maintForm').addEventListener('submit', async e=>{
+on('maintForm', 'submit', async e=>{
   e.preventDefault();
   await apiPost('/maintenance', { vehicle_id: parseInt(m_vehicle.value), description: m_desc.value });
   toast('Vehicle sent to shop'); e.target.reset(); refreshAll();
 });
 async function closeMaint(id){ await apiPut(`/maintenance/${id}/close`); toast('Maintenance closed'); refreshAll(); }
 
-document.getElementById('fuelForm').addEventListener('submit', async e=>{
+on('fuelForm', 'submit', async e=>{
   e.preventDefault();
   await apiPost('/fuel', { vehicle_id: parseInt(f_vehicle.value), liters: parseFloat(f_liters.value), cost: parseFloat(f_cost.value) });
   toast('Fuel log added'); e.target.reset();
 });
-document.getElementById('expForm').addEventListener('submit', async e=>{
+on('expForm', 'submit', async e=>{
   e.preventDefault();
   await apiPost('/expenses', { vehicle_id: parseInt(e_vehicle.value), type: e_type.value, amount: parseFloat(e_amount.value) });
   toast('Expense added'); e.target.reset();
 });
-document.getElementById('costLookupBtn').addEventListener('click', async ()=>{
+on('costLookupBtn', 'click', async ()=>{
   const id = cost_vehicle.value;
   if(!id){ toast('Pick a vehicle first', false); return; }
   const data = await apiGet(`/vehicles/${id}/cost`);
   document.getElementById('costResult').innerHTML =
     `Fuel: <b>${fmtCurrency(data.total_fuel_cost)}</b> &nbsp;|&nbsp; Expenses: <b>${fmtCurrency(data.total_expense_cost)}</b> &nbsp;|&nbsp; Total: <b>${fmtCurrency(data.total_operational_cost)}</b>`;
 });
-document.getElementById('vehicleSearch').addEventListener('input', e=>{
+on('vehicleSearch', 'input', e=>{
   const q = e.target.value.toLowerCase();
   const filtered = VEHICLES.filter(v=>v.registration_number.toLowerCase().includes(q));
   const el = document.getElementById('vehicleTable');
