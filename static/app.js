@@ -1,5 +1,6 @@
 const API = 'http://127.0.0.1:5000';
-let VEHICLES = [], DRIVERS = [], TRIPS = [], MAINT = [];
+let VEHICLES = [], DRIVERS = [], TRIPS = [], MAINT = [], REPORTS = [];
+let ACTIVE_FILTERS = { type:'', status:'', region:'' };
 
 const STATUS_COLOR = {
   'Available':'#28a745','On Trip':'#0d6efd','In Shop':'#ffc107','Retired':'#6c757d',
@@ -118,16 +119,32 @@ async function refreshAll(){
     [VEHICLES, DRIVERS, TRIPS, MAINT] = await Promise.all([
       apiGet('/vehicles'), apiGet('/drivers'), apiGet('/trips').catch(()=>[]), apiGet('/maintenance').catch(()=>[])
     ]);
+    REPORTS = await apiGet('/reports').catch(()=>[]);
   }catch(err){ toast('Cannot reach backend at '+API+' — is app.py running with CORS enabled?', false); return; }
-  renderVehicles(); renderDrivers(); renderTrips(); renderMaint(); renderDashboard(); fillDropdowns();
+  renderVehicles(); renderDrivers(); renderTrips(); renderMaint(); renderDashboard(); renderReports(); fillDropdowns(); fillRegionFilter();
 }
 
+function applyFilters(list){
+  return list.filter(v=>
+    (!ACTIVE_FILTERS.type || v.type === ACTIVE_FILTERS.type) &&
+    (!ACTIVE_FILTERS.status || v.status === ACTIVE_FILTERS.status) &&
+    (!ACTIVE_FILTERS.region || v.region === ACTIVE_FILTERS.region)
+  );
+}
 function renderVehicles(){
   const el = document.getElementById('vehicleTable');
-  if(!VEHICLES.length){ el.innerHTML = emptyRow(6,'bi-truck-front','No vehicles yet — add one above.'); return; }
-  el.innerHTML = VEHICLES.map(v=>`
-    <tr>${statusCell(v.id, v.status)}<td>${v.registration_number}</td><td>${v.model||'-'}</td><td>${v.type||'-'}</td>
-    <td>${v.max_load_capacity||'-'} kg</td><td>${statusBadge(v.status)}</td></tr>`).join('');
+  const list = applyFilters(VEHICLES);
+  if(!list.length){ el.innerHTML = emptyRow(8,'bi-truck-front','No vehicles match — add one above or reset filters.'); return; }
+  el.innerHTML = list.map(v=>{
+    const retireBtn = v.status !== 'Retired' && v.status !== 'On Trip'
+      ? `<button class="btn btn-sm btn-outline-secondary" onclick="retireVehicle(${v.id})">Retire</button>` : '';
+    return `<tr>${statusCell(v.id, v.status)}<td>${v.registration_number}</td><td>${v.model||'-'}</td><td>${v.type||'-'}</td>
+    <td>${v.region||'-'}</td><td>${v.max_load_capacity||'-'} kg</td><td>${statusBadge(v.status)}</td><td>${retireBtn}</td></tr>`;
+  }).join('');
+}
+async function retireVehicle(id){
+  if(!confirm('Retire this vehicle? It will be permanently removed from dispatch.')) return;
+  await apiPut(`/vehicles/${id}/retire`); toast('Vehicle retired'); refreshAll();
 }
 function renderDrivers(){
   const el = document.getElementById('driverTable');
@@ -168,6 +185,46 @@ function renderMaint(){
     return `<tr>${statusCell(m.id, m.status)}<td>${veh?veh.registration_number:m.vehicle_id}</td><td>${m.description}</td><td>${statusBadge(m.status)}</td><td>${action}</td></tr>`;
   }).join('');
 }
+
+function fillRegionFilter(){
+  const regions = [...new Set(VEHICLES.map(v=>v.region).filter(Boolean))];
+  const sel = document.getElementById('filter_region');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All Regions</option>' + regions.map(r=>`<option value="${r}">${r}</option>`).join('');
+  sel.value = current;
+}
+['filter_type','filter_status','filter_region'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', e=>{
+    const key = id.replace('filter_','');
+    ACTIVE_FILTERS[key] = e.target.value;
+    renderVehicles(); renderDashboard();
+  });
+});
+document.getElementById('filterResetBtn').addEventListener('click', ()=>{
+  ACTIVE_FILTERS = { type:'', status:'', region:'' };
+  ['filter_type','filter_status','filter_region'].forEach(id=>document.getElementById(id).value='');
+  renderVehicles(); renderDashboard();
+});
+
+function renderReports(){
+  const el = document.getElementById('reportsTable');
+  if(!REPORTS.length){ el.innerHTML = emptyRow(7,'bi-bar-chart-line','No report data yet — add vehicles, fuel logs, and expenses first.'); return; }
+  el.innerHTML = REPORTS.map(r=>`
+    <tr>${statusCell(r.vehicle_id, r.status)}<td>${r.type||'-'}</td><td>${r.region||'-'}</td><td>${statusBadge(r.status)}</td>
+    <td>${r.fuel_efficiency}</td><td>${r.total_operational_cost}</td><td>${r.roi}</td></tr>`).join('');
+}
+document.getElementById('csvExportBtn').addEventListener('click', ()=>{
+  if(!REPORTS.length){ toast('No report data to export', false); return; }
+  const headers = ['Reg No','Type','Region','Status','Fuel Efficiency (km/L)','Operational Cost','ROI'];
+  const rows = REPORTS.map(r=>[r.registration_number,r.type,r.region,r.status,r.fuel_efficiency,r.total_operational_cost,r.roi]);
+  const csv = [headers, ...rows].map(row=>row.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'transitops_fleet_report.csv';
+  link.click();
+  toast('CSV exported');
+});
 
 function fillDropdowns(){
   const availVeh = VEHICLES.filter(v=>v.status==='Available');
@@ -259,7 +316,9 @@ document.getElementById('vehicleForm').addEventListener('submit', async e=>{
   e.preventDefault();
   await apiPost('/vehicles', {
     registration_number: v_reg.value, model: v_model.value, type: v_type.value,
-    max_load_capacity: parseFloat(v_load.value)
+    max_load_capacity: parseFloat(v_load.value),
+    region: v_region.value || 'Unassigned',
+    acquisition_cost: parseFloat(v_cost.value) || 0
   });
   toast('Vehicle added'); e.target.reset(); refreshAll();
 });
