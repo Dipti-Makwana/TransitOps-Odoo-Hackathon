@@ -1,5 +1,5 @@
 from flask import Flask
-from models import db, Vehicle, Driver, Trip, Maintenance
+from models import db, Vehicle, Driver, Trip, Maintenance, FuelLog, Expense
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -187,6 +187,68 @@ def close_maintenance(maintenance_id):
     db.session.commit()
 
     return jsonify({"message": "Maintenance closed, vehicle status updated"}), 200
+
+    # ---------- ADD FUEL LOG ----------
+@app.route('/fuel', methods=['POST'])
+def add_fuel_log():
+    data = request.json
+    vehicle = Vehicle.query.get(data['vehicle_id'])
+
+    if not vehicle:
+        return jsonify({"error": "Vehicle not found"}), 404
+
+    fuel_log = FuelLog(
+        vehicle_id=vehicle.id,
+        liters=data['liters'],
+        cost=data['cost']
+    )
+
+    db.session.add(fuel_log)
+    db.session.commit()
+
+    return jsonify({"message": "Fuel log added", "fuel_log_id": fuel_log.id}), 201
+
+# ---------- ADD EXPENSE ----------
+@app.route('/expenses', methods=['POST'])
+def add_expense():
+    data = request.json
+    vehicle = Vehicle.query.get(data['vehicle_id'])
+
+    if not vehicle:
+        return jsonify({"error": "Vehicle not found"}), 404
+
+    expense = Expense(
+        vehicle_id=vehicle.id,
+        type=data['type'],
+        amount=data['amount']
+    )
+
+    db.session.add(expense)
+    db.session.commit()
+
+    return jsonify({"message": "Expense added", "expense_id": expense.id}), 201
+
+# ---------- OPERATIONAL COST PER VEHICLE ----------
+@app.route('/vehicles/<int:vehicle_id>/cost', methods=['GET'])
+def get_vehicle_cost(vehicle_id):
+    vehicle = Vehicle.query.get(vehicle_id)
+
+    if not vehicle:
+        return jsonify({"error": "Vehicle not found"}), 404
+
+    fuel_logs = FuelLog.query.filter_by(vehicle_id=vehicle_id).all()
+    expenses = Expense.query.filter_by(vehicle_id=vehicle_id).all()
+
+    total_fuel_cost = sum(f.cost for f in fuel_logs)
+    total_expense_cost = sum(e.amount for e in expenses)
+    total_operational_cost = total_fuel_cost + total_expense_cost
+
+    return jsonify({
+        "vehicle_id": vehicle_id,
+        "total_fuel_cost": total_fuel_cost,
+        "total_expense_cost": total_expense_cost,
+        "total_operational_cost": total_operational_cost
+    }), 200
 
 if __name__ == '__main__':
     app.run(debug=True)

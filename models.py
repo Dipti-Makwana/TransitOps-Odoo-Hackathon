@@ -39,3 +39,20 @@ class Maintenance(db.Model):
     description = db.Column(db.String(100), nullable=False)  # e.g. "Oil Change"
     status = db.Column(db.String(20), default='Active')  # Active, Closed
     created_date = db.Column(db.Date, default=datetime.utcnow)
+
+    # ---------- FUEL LOG TABLE ----------
+class FuelLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicle.id'), nullable=False)
+    liters = db.Column(db.Float, nullable=False)
+    cost = db.Column(db.Float, nullable=False)
+    date = db.Column(db.Date, default=datetime.utcnow)
+
+# ---------- EXPENSE TABLE ----------
+class Expense(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicle.id'), nullable=False)
+    type = db.Column(db.String(30), nullable=False)  # e.g. "Toll", "Maintenance"
+    amount = db.Column(db.Float, nullable=False)
+    date = db.Column(db.Date, default=datetime.utcnow)
+    
