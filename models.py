@@ -20,9 +20,11 @@ class Driver(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
     license_number = db.Column(db.String(30), unique=True, nullable=False)
+    license_category = db.Column(db.String(20), default='')
+    contact_number = db.Column(db.String(20), default='')
     license_expiry_date = db.Column(db.Date, nullable=False)
     safety_score = db.Column(db.Float, default=100)
-    status = db.Column(db.String(20), default='Available')  # Available, On Trip, Off Duty, Suspended
+    status = db.Column(db.String(20), default='Available')
 
 # ---------- TRIPS TABLE ----------
 class Trip(db.Model):
@@ -32,7 +34,8 @@ class Trip(db.Model):
     vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicle.id'), nullable=False)
     driver_id = db.Column(db.Integer, db.ForeignKey('driver.id'), nullable=False)
     cargo_weight = db.Column(db.Float, nullable=False)
-    trip_status = db.Column(db.String(20), default='Draft')  # Draft, Dispatched, Completed, Cancelled
+    planned_distance = db.Column(db.Float, default=0)
+    trip_status = db.Column(db.String(20), default='Draft')
 
     # ---------- MAINTENANCE TABLE ----------
 class Maintenance(db.Model):

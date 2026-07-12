@@ -39,10 +39,12 @@ def add_vehicle():
 def add_driver():
     data = request.json
     driver = Driver(
-        name=data['name'],
-        license_number=data['license_number'],
-        license_expiry_date=datetime.strptime(data['license_expiry_date'], '%Y-%m-%d')
-    )
+    name=data['name'],
+    license_number=data['license_number'],
+    license_category=data.get('license_category', ''),
+    contact_number=data.get('contact_number', ''),
+    license_expiry_date=datetime.strptime(data['license_expiry_date'], '%Y-%m-%d')
+)
     db.session.add(driver)
     db.session.commit()
     return jsonify({"message": "Driver added", "id": driver.id}), 201
@@ -82,6 +84,7 @@ def create_trip():
         vehicle_id=vehicle.id,
         driver_id=driver.id,
         cargo_weight=data['cargo_weight'],
+        planned_distance=data.get('planned_distance', 0),
         trip_status='Dispatched'
     )
 
@@ -98,14 +101,19 @@ def create_trip():
 @app.route('/vehicles', methods=['GET'])
 def get_vehicles():
     vehicles = Vehicle.query.all()
-    result = [{"id": v.id, "registration_number": v.registration_number, "status": v.status} for v in vehicles]
+    result = [{"id": v.id, "registration_number": v.registration_number, "model": v.model,
+        "type": v.type, "region": v.region, "odometer": v.odometer,
+        "max_load_capacity": v.max_load_capacity, "status": v.status} for v in vehicles]
     return jsonify(result)
 
 # ---------- VIEW ALL DRIVERS ----------
 @app.route('/drivers', methods=['GET'])
 def get_drivers():
     drivers = Driver.query.all()
-    result = [{"id": d.id, "name": d.name, "status": d.status} for d in drivers]
+    result = [{"id": d.id, "name": d.name, "license_number": d.license_number,
+        "license_category": d.license_category, "contact_number": d.contact_number,
+        "license_expiry_date": str(d.license_expiry_date), "safety_score": d.safety_score,
+        "status": d.status} for d in drivers]
     return jsonify(result)
 
 # ---------- COMPLETE TRIP ----------
@@ -287,7 +295,7 @@ def get_vehicle(id):
     v = Vehicle.query.get(id)
     if not v: return jsonify({"error": "not found"}), 404
     return jsonify({"id": v.id, "registration_number": v.registration_number,
-        "model": v.model, "type": v.type, "max_load_capacity": v.max_load_capacity,
+        "model": v.model, "type": v.type, "region": v.region, "max_load_capacity": v.max_load_capacity,
         "odometer": v.odometer, "status": v.status})
 
 @app.route('/drivers/<int:id>', methods=['GET'])
@@ -295,15 +303,17 @@ def get_driver(id):
     d = Driver.query.get(id)
     if not d: return jsonify({"error": "not found"}), 404
     return jsonify({"id": d.id, "name": d.name, "license_number": d.license_number,
-        "license_expiry_date": str(d.license_expiry_date), "safety_score": d.safety_score, "status": d.status})
+        "license_category": d.license_category, "contact_number": d.contact_number,
+        "license_expiry_date": str(d.license_expiry_date), "safety_score": d.safety_score,
+        "status": d.status})
 
 @app.route('/trips', methods=['GET'])
 def get_trips():
     trips = Trip.query.all()
     return jsonify([{"id": t.id, "source": t.source, "destination": t.destination,
         "vehicle_id": t.vehicle_id, "driver_id": t.driver_id, "cargo_weight": t.cargo_weight,
-        "trip_status": t.trip_status} for t in trips])
-
+        "planned_distance": t.planned_distance, "trip_status": t.trip_status} for t in trips])
+        
 @app.route('/maintenance', methods=['GET'])
 def get_maintenance():
     m = Maintenance.query.all()
