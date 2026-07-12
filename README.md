@@ -5,7 +5,7 @@ A backend system for managing fleet vehicles, drivers, trips, maintenance, and o
 ## Tech Stack
 - Backend: Python, Flask, SQLAlchemy
 - Database: SQLite
-- Frontend: HTML, JavaScript
+- Frontend: HTML,CSS, JavaScript
 
 ## Features
 - Vehicle and Driver management
