@@ -250,6 +250,33 @@ def get_vehicle_cost(vehicle_id):
         "total_operational_cost": total_operational_cost
     }), 200
 
+    # ---------- DASHBOARD KPIs ----------
+@app.route('/dashboard', methods=['GET'])
+def get_dashboard():
+    total_vehicles = Vehicle.query.count()
+    active_vehicles = Vehicle.query.filter(Vehicle.status != 'Retired').count()
+    available_vehicles = Vehicle.query.filter_by(status='Available').count()
+    vehicles_in_maintenance = Vehicle.query.filter_by(status='In Shop').count()
+
+    active_trips = Trip.query.filter_by(trip_status='Dispatched').count()
+    pending_trips = Trip.query.filter_by(trip_status='Draft').count()
+
+    drivers_on_duty = Driver.query.filter_by(status='On Trip').count()
+
+    # Fleet Utilization % = (vehicles currently On Trip / total active vehicles) * 100
+    vehicles_on_trip = Vehicle.query.filter_by(status='On Trip').count()
+    fleet_utilization = (vehicles_on_trip / active_vehicles * 100) if active_vehicles > 0 else 0
+
+    return jsonify({
+        "active_vehicles": active_vehicles,
+        "available_vehicles": available_vehicles,
+        "vehicles_in_maintenance": vehicles_in_maintenance,
+        "active_trips": active_trips,
+        "pending_trips": pending_trips,
+        "drivers_on_duty": drivers_on_duty,
+        "fleet_utilization_percent": round(fleet_utilization, 2)
+    }), 200
+
 if __name__ == '__main__':
     app.run(debug=True)
 
