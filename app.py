@@ -42,6 +42,70 @@ def add_driver():
     db.session.commit()
     return jsonify({"message": "Driver added", "id": driver.id}), 201
 
+    # ---------- CREATE + DISPATCH TRIP ----------
+@app.route('/trips', methods=['POST'])
+def create_trip():
+    data = request.json
+
+    vehicle = Vehicle.query.get(data['vehicle_id'])
+    driver = Driver.query.get(data['driver_id'])
+
+    # Check 1: Vehicle exists and is Available
+    if not vehicle:
+        return jsonify({"error": "Vehicle not found"}), 404
+    if vehicle.status != 'Available':
+        return jsonify({"error": f"Vehicle is {vehicle.status}, cannot dispatch"}), 400
+
+    # Check 2: Driver exists and is Available
+    if not driver:
+        return jsonify({"error": "Driver not found"}), 404
+    if driver.status != 'Available':
+        return jsonify({"error": f"Driver is {driver.status}, cannot dispatch"}), 400
+
+    # Check 3: License not expired
+    if driver.license_expiry_date < datetime.now().date():
+        return jsonify({"error": "Driver's license has expired"}), 400
+
+    # Check 4: Cargo weight within limit
+    if data['cargo_weight'] > vehicle.max_load_capacity:
+        return jsonify({"error": f"Cargo weight {data['cargo_weight']}kg exceeds vehicle limit {vehicle.max_load_capacity}kg"}), 400
+
+    # All checks passed — create trip
+    trip = Trip(
+        source=data['source'],
+        destination=data['destination'],
+        vehicle_id=vehicle.id,
+        driver_id=driver.id,
+        cargo_weight=data['cargo_weight'],
+        trip_status='Dispatched'
+    )
+
+    # Auto-switch statuses (business rule from PDF)
+    vehicle.status = 'On Trip'
+    driver.status = 'On Trip'
+
+    db.session.add(trip)
+    db.session.commit()
+
+    return jsonify({"message": "Trip dispatched successfully", "trip_id": trip.id}), 201
+
+    # ---------- VIEW ALL VEHICLES ----------
+@app.route('/vehicles', methods=['GET'])
+def get_vehicles():
+    vehicles = Vehicle.query.all()
+    result = [{"id": v.id, "registration_number": v.registration_number, "status": v.status} for v in vehicles]
+    return jsonify(result)
+
+# ---------- VIEW ALL DRIVERS ----------
+@app.route('/drivers', methods=['GET'])
+def get_drivers():
+    drivers = Driver.query.all()
+    result = [{"id": d.id, "name": d.name, "status": d.status} for d in drivers]
+    return jsonify(result)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
 if __name__ == '__main__':
     app.run(debug=True)
     
